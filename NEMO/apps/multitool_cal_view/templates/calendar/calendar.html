@@ -133,7 +133,7 @@ function update_event_sources()
 		if(item !== 'personal_schedule')
 		{
 			let checkedTools = $('input:checked');
-			let len = Object.keys(checkedTools).length - 4;
+			let len = checkedTools.length;
             for( var i = 0; i < len; ++i)
             {
                 if( checkedTools[i].id != item )
@@ -662,6 +662,9 @@ function on_load()
 	$('#item_search').autocomplete('items', on_item_search_selection, {% json_search_base_with_extra_fields tools|add:areas %}, {% if tools and areas %}false{% else %}true{% endif %});
 	$("#item_search").focus();
 	load_sidebar_state();
+	{# Insert checkboxes for multitool feature #}
+	let items = $('li.a');
+	console.log(items);
 	$(".item_tree").show(); {# Item tree is initially hidden so that previous expand/collapse state of categories is configured before it's visible. #}
 	{% if auto_select_item_id %}
 		expand_to_item({{ auto_select_item_id }}, {{ auto_select_item_type }});
