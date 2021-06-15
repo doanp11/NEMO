@@ -110,7 +110,7 @@ function update_event_sources()
 		}
 		else if(item)
 		{
-			item = JSON.parse(item)
+			item = JSON.parse(item);
 			item_event_source.data.item_id = item.id;
 			item_event_source.data.item_type = item.type;
 			$(scheduled_outage_button).removeClass('fc-state-disabled');
@@ -126,6 +126,35 @@ function update_event_sources()
 	}
 
 	calendar_jq.fullCalendar("addEventSource", item_event_source);
+
+	if(event_type === 'reservations' || event_type === '{{ facility_name|lower }} usage')
+	{
+		let item = get_selected_item();
+		if(item !== 'personal_schedule')
+		{
+			let checkedTools = $('input:checked');
+			let len = Object.keys(checkedTools).length - 4;
+            for( var i = 0; i < len; ++i)
+            {
+                if( checkedTools[i].id != item )
+                {
+                    let checked_item_event_source =
+                    {
+                        url: "{% url 'event_feed' %}",
+                        data:
+                        {
+                            event_type: event_type
+                        }
+                    }
+
+                    checked_item_event_source.data.item_id = checkedTools[i].getAttribute('data-item-id');
+                    checked_item_event_source.data.item_type = checkedTools[i].getAttribute('data-item-type');
+
+					calendar_jq.fullCalendar("addEventSource", checked_item_event_source);
+                }
+            }
+		}
+	}
 
 	refresh_sidebar_icons();
 	refresh_calendar_login();
