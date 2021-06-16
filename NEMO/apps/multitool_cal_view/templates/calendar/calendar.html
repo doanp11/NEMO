@@ -138,7 +138,7 @@ function update_event_sources()
 
             for( var i = 0; i < len; ++i)
             {
-                if( checkedTools[i].id != item.type + "-" + item.id )
+                if( checkedTools[i].id != item.type + "-" + item.id + "-checkbox" )
                 {
                     let checked_item_event_source =
                     {
@@ -667,7 +667,7 @@ function on_load()
 
 	{# Insert checkboxes for multitool feature #}
 	$( "ul.item_tree a" ).before( function() {
-		return "<span><input type='checkbox' onclick='update_event_sources()' id='" + $( this ).attr('id')
+		return "<span><input type='checkbox' onclick='update_event_sources()' id='" + $( this ).attr('id') + "-checkbox"
 				+ "' data-item-id='" + $( this ).attr('data-item-id')
 				+ "' data-item-type='" + $( this ).attr('data-item-type')
 				+ "' name='toolcheck'></span>"
