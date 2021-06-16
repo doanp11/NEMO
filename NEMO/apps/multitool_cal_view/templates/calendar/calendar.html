@@ -130,11 +130,12 @@ function update_event_sources()
 	if(event_type === 'reservations' || event_type === '{{ facility_name|lower }} usage')
 	{
 		let item = get_selected_item();
-		item = JSON.parse(item);
 		if(item !== 'personal_schedule')
 		{
+			item = JSON.parse(item);
 			let checkedTools = $('input:checked');
 			let len = checkedTools.length;
+
             for( var i = 0; i < len; ++i)
             {
                 if( checkedTools[i].id != item.type + "-" + item.id )
