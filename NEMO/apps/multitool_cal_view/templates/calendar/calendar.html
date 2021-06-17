@@ -113,6 +113,7 @@ function update_event_sources()
 			item = JSON.parse(item);
 			item_event_source.data.item_id = item.id;
 			item_event_source.data.item_type = item.type;
+			item_event_source.color = "#3a87ad";
 			$(scheduled_outage_button).removeClass('fc-state-disabled');
 		}
 	}
@@ -151,6 +152,7 @@ function update_event_sources()
 
                     checked_item_event_source.data.item_id = checkedTools[i].getAttribute('data-item-id');
                     checked_item_event_source.data.item_type = checkedTools[i].getAttribute('data-item-type');
+                    checked_item_event_source.color = "#88B7CD";
 
 					calendar_jq.fullCalendar("addEventSource", checked_item_event_source);
                 }
