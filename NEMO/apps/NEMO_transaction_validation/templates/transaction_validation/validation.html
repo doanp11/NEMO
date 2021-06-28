@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Transaction validation{% endblock %}
+{% block extrahead %}
+	<script type="text/javascript" src="{% static "datetimepicker/bootstrap-datetimepicker.js" %}"></script>
+	<link rel="stylesheet" type="text/css" href="{% static "datetimepicker/bootstrap-datetimepicker.css" %}"/>
+{% endblock %}
+{% block content %}
+	<h1>Transaction Validation</h1>
+
+	<p>This page displays transactions conducted by {{ facility_name }} staff on behalf of users. You can filter by which project the transaction was conducted for, and when, by using the dropdown boxes below.</p>
+
+	<p>Each charge can be validated, which means that you have confirmed that the charge is legitimate and correct, and no adjustment needs to
+	be made to it. Press the green 'Validate' button on an individual row to validate a charge. Charges that have already been validated are
+	highlighted in <span class="success-highlight">green</span>.</p>
+
+	<p>Do not validate a charge if part or all of it is incorrect. Instead, visit the user office so an adjustment can be entered
+	into the billing system. Furthermore, please visit the user office if there is a charge that you forgot to enter.</p>
+
+	<form id="remote_work_form" class="form-horizontal" role="form" style="margin-top: 20px">
+		<input type="hidden" name="csv" id="hidden_data_csv"/>
+		<div class="form-group">
+			<div class="control-label col-md-5">
+				<label class="text-right" style="width: 100%" for="project">
+					View charges for <b>{{ user|escapejs }}</b> and for
+				</label>
+			</div>
+			<div class="col-md-5">
+				<select id="project" name="project" class="form-control">
+					<option {% if selected_project == "all projects" %}selected{% endif %}>all projects</option>
+					{% for p in project_list %}
+						<option value="{{ p.id }}" {% if p.id == selected_project %}selected{% endif %}>{{ p }}</option>
+					{% endfor %}
+				</select>
+			</div>
+		</div>
+		<br>
+		<div class="form-group">
+			<label for="month_list" class="control-label col-md-2">during</label>
+			<div class="col-md-2">
+				<select id="month_list" class="form-control" style="margin-right: 5px;" onchange="set_dates_from_month(this.value)">
+					<option selected></option>
+					{% for month in month_list %}
+						<option>{{ month|date:"F, Y" }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="control-label col-md-1" style="padding-left: 0;padding-right: 0">
+				<label for="start_date" class="text-center" style="width: 100%">or between</label>
+			</div>
+			<div class="col-md-2">
+				<input type="text" id="start_date" name="start_date" class="form-control text-center" placeholder="Choose a date" value="{{ start_date|date:"m/d/Y" }}">
+			</div>
+			<div class="control-label col-md-1">
+				<label for="end_date" class="text-center" style="width: 100%">and</label>
+			</div>
+			<div class="col-md-2">
+				<input type="text" id="end_date" name="end_date" class="form-control text-center" placeholder="Choose a date" value="{{ end_date|date:"m/d/Y" }}">
+			</div>
+		</div>
+		<div class="form-group" style="margin-top: 25px">
+			<div class="col-sm-12 text-center">
+				<input type="button" class="btn btn-default" value="Update" onclick="$('#hidden_data_csv').val('');$('#remote_work_form').submit();">
+				<input type="button" class="btn btn-info" style="margin-left: 5px" value="Export" onclick="$('#hidden_data_csv').val('true');$('#remote_work_form').submit();">
+			</div>
+		</div>
+	</form>
+
+	<h3>Staff charges</h3>
+	<table class="table">
+		<thead>
+		<tr>
+			<th>ID</th>
+			<th>Staff member</th>
+			<th>Customer</th>
+			<th>Project</th>
+			<th>Start</th>
+			<th>End</th>
+			<th>Validate</th>
+		</tr>
+		</thead>
+		<tbody>
+		{% for c in staff_charges %}
+			<tr {% if c.validated %}class="success-highlight"{% endif %} id="staff_charge_row_{{ forloop.counter }}">
+				<td>{{ c.id }}</td>
+				<td>{{ c.staff_member }}</td>
+				<td>{{ c.customer }}</td>
+				<td>{{ c.project }}</td>
+				<td>{{ c.start }}</td>
+				<td>{{ c.end|default_if_none:'' }}</td>
+				<td>{% if not c.validated %}<button class="btn btn-success">Validate</button>{% endif %}</td>
+			</tr>
+			{% for area_access_record in c.areaaccessrecord_set.all %}
+				<tr style="font-size: smaller">
+					<td style="border-top: none"></td>
+					<td colspan="3" style="border-top-style: dotted">{{ area_access_record.area.name }} access</td>
+					<td style="border-top-style: dotted">{{ area_access_record.start }}</td>
+					<td style="border-top-style: dotted">{{ area_access_record.end|default_if_none:'' }}</td>
+					<td style="border-top: none"></td>
+				</tr>
+			{%  endfor %}
+		{% endfor %}
+		</tbody>
+	</table>
+	<br>
+	<h3>Tool usage</h3>
+	<table class="table">
+		<thead>
+		<tr>
+			<th>ID</th>
+			<th>Operator</th>
+			<th>Customer</th>
+			<th>Project</th>
+			<th>Start</th>
+			<th>End</th>
+			<th>Duration</th>
+			<th>Tool</th>
+			<th>Validate</th>
+			<th>Contest</th>
+		</tr>
+		</thead>
+		<tbody>
+		{% for u in usage %}
+			<tr {% if u.validated %}class="success-highlight"{% endif %} id="usage_event_row_{{ forloop.counter }}">
+				<td>{{ u.id }}</td>
+				<td>{{ u.operator }}</td>
+				<td>{{ u.user }}</td>
+				<td>{{ u.project }}</td>
+				<td>{{ u.start }}</td>
+				<td>{{ u.end|default_if_none:'In progress' }}</td>
+				<td>{% if u.duration != 'In progress' %}{{ u.start|timesince:u.end }}{% endif %}</td>
+				<td>{{ u.tool }}</td>
+				<td>{% if not u.validated %}<button class="btn btn-success">Validate</button>{% endif %}</td>
+				<td>{% if not u.validated %}<button class="btn btn-warning" onclick="window.location.href='{% url 'contest_usage_event' u.id %}'">Contest</button>{% endif %}</td>
+			</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+
+	<script>
+		function validate_charge(url, button, row)
+		{
+			$(button).hide();
+			$(row).addClass('success-highlight');
+			let failure_dialog = ajax_failure_callback("Unable to validate charge");
+			ajax_post(url, undefined, undefined, failure_dialog);
+		}
+
+		let start_date_jq = $('#start_date');
+		let end_date_jq = $('#end_date');
+		start_date_jq.datetimepicker({format: 'MM/DD/YYYY'});
+		end_date_jq.datetimepicker({format: 'MM/DD/YYYY'});
+
+		function set_dates_from_month(month_input)
+		{
+			let month = moment(month_input, "MMMM, YYYY");
+			let firstOfMonth = month.startOf('month').format('MM/DD/YYYY');
+			let lastOfMonth = month.endOf('month').format('MM/DD/YYYY');
+
+			start_date_jq.val(firstOfMonth);
+			end_date_jq.val(lastOfMonth);
+		}
+
+		function set_dropdown_selected()
+		{
+			if ('{{ start_date }}' && '{{ end_date }}')
+			{
+				let start = moment('{{ start_date|date:'m/d/Y' }}');
+				let end = moment('{{ end_date|date:'m/d/Y' }}');
+				if (start.month() === end.month() && start.year() === end.year() && start.format('MM/DD/YYYY') === start.startOf('month').format('MM/DD/YYYY') && end.format('MM/DD/YYYY') === end.endOf('month').format('MM/DD/YYYY'))
+				{
+					let month = start.format("MMMM, YYYY");
+					$('#month_list').val(month)
+				}
+			}
+		}
+		$(set_dropdown_selected());
+	</script>
+
+{% endblock %}
