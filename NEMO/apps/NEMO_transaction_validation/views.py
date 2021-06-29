@@ -43,12 +43,19 @@ def transaction_validation(request):
 	if project:
 		usage_events = usage_events.filter(project=project)
 		staff_charges = staff_charges.filter(project=project)
+
+	contests = Contest.objects.filter(admin_approved=False)
+	contest_list = set()
+	for contest in contests:
+		contest_list.add(contest.transaction.id)
+
 	dictionary = {
 		"usage": usage_events,
 		"staff_charges": staff_charges,
 		"project_list": Project.objects.filter(active=True),
-		"start": start_date,
-		"end": end_date,
+		"contest_list": contest_list,
+		"start_date": start_date,
+		"end_date": end_date,
 		"month_list": month_list(),
 		"selected_staff": operator.id if operator else "all staff",
 		"selected_project": project.id if project else "all projects",

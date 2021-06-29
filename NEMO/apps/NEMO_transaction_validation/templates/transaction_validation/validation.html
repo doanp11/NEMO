@@ -121,7 +121,7 @@
 		</thead>
 		<tbody>
 		{% for u in usage %}
-			<tr {% if u.validated %}class="success-highlight"{% endif %} id="usage_event_row_{{ forloop.counter }}">
+			<tr {% if u.validated %}class="success-highlight"{% elif u.id in contest_list %}class="warning-highlight"{% endif %} id="usage_event_row_{{ forloop.counter }}">
 				<td>{{ u.id }}</td>
 				<td>{{ u.operator }}</td>
 				<td>{{ u.user }}</td>
@@ -130,7 +130,7 @@
 				<td>{{ u.end|default_if_none:'In progress' }}</td>
 				<td>{% if u.duration != 'In progress' %}{{ u.start|timesince:u.end }}{% endif %}</td>
 				<td>{{ u.tool }}</td>
-				<td>{% if not u.validated %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_usage_event' u.id %}', this, '#usage_event_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
+				<td>{% if not u.validated %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_usage_event' u.id %}', '#usage_event_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
 				<td>{% if not u.validated %}<button class="btn btn-warning" onclick="window.location.href='{% url 'contest_usage_event' u.id %}'">Contest</button>{% endif %}</td>
 			</tr>
 		{% endfor %}
@@ -138,10 +138,10 @@
 	</table>
 
 	<script>
-		function validate_charge(url, button, row)
+		function validate_charge(url, row)
 		{
-			$(button).hide();
-			$(row).addClass('success-highlight');
+			$(row + " :button").hide();
+			$(row).attr('class', 'success-highlight');
 			let failure_dialog = ajax_failure_callback("Unable to validate charge");
 			ajax_post(url, undefined, undefined, failure_dialog);
 		}
