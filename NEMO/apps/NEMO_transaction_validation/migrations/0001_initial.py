@@ -28,6 +28,7 @@ class Migration(migrations.Migration):
                 ('operator', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='contest_operator', to=settings.AUTH_USER_MODEL)),
                 ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='NEMO.Project')),
                 ('tool', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='NEMO.Tool')),
+                ('transaction', models.ForeignKey(help_text='Usage Event to be contested', on_delete=django.db.models.deletion.CASCADE, to='NEMO.UsageEvent')),
             ],
             options={
                 'ordering': ['operator'],

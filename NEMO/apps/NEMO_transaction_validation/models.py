@@ -4,11 +4,11 @@ from NEMO.models import Tool, Project, User, UsageEvent
 # Create your models here.
 class Contest(models.Model):
     CONTEST_REASONS = [
-        (0, 'Incorrect operator selection'),
-        (1, 'Incorrect customer selection'),
-        (2, 'Incorrect project selection'),
-        (3, 'Incorrect date selection'),
-        (4, 'Incorrect tool selection'),
+        ('operator', 'Incorrect operator selection'),
+        ('customer', 'Incorrect customer selection'),
+        ('project',  'Incorrect project selection'),
+        ('datetime', 'Incorrect date/time selection'),
+        ('tool',     'Incorrect tool selection'),
     ]
     transaction = models.ForeignKey(UsageEvent, help_text="Usage Event to be contested", on_delete=models.CASCADE)
     operator = models.ForeignKey(User, help_text="Staff that performed the transaction on behalf of the customer", related_name="contest_operator", on_delete=models.CASCADE)
@@ -25,4 +25,4 @@ class Contest(models.Model):
         ordering = ['operator']
 
     def __str__(self):
-        return self.id
+        return str(self.id)

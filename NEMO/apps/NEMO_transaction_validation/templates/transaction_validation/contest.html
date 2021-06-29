@@ -10,13 +10,14 @@
 
 	<p>You have selected the Usage Event detailed below to contest. Please select a general reason this item should be contested and enter a description of the specifics. Once this form is submitted, the Usage Event will be placed in contested status until an administrator can review the record and address it as needed.</p>
 
-	<form id="contest_form" class="form-horizontal" role="form" style="margin-top: 20px">
+	<form id="contest_form" class="form-horizontal needs-validation" action="{% url 'submit_contest' usage_event.id %}" method="post">
+		{% csrf_token %}
 		<div class="form-group">
 			<label for="operator" class="col-md-2 control-label"><b>Operator</b></label>
 			<div class="col-md-10">
-				<select id="operator" name="operator" class="form-control">
+				<select id="operator" name="operator_id" class="form-control">
 					{% for u in user_list %}
-					<option {% if usage_event.operator.id == u.id %}selected {% endif %}>{{ u }}</option>
+					<option {% if usage_event.operator.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
 					{% endfor %}
 				</select>
 			</div>
@@ -24,9 +25,9 @@
 		<div class="form-group">
 			<label for="customer" class="col-md-2 control-label"><b>Customer</b></label>
 			<div class="col-md-10">
-				<select id="customer" name="customer" class="form-control">
+				<select id="customer" name="customer_id" class="form-control">
 					{% for u in user_list %}
-					<option {% if usage_event.user.id == u.id %}selected {% endif %}>{{ u }}</option>
+					<option {% if usage_event.user.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
 					{% endfor %}
 				</select>
 			</div>
@@ -34,23 +35,23 @@
 		<div class="form-group">
 			<label for="project" class="col-md-2 control-label"><b>Project</b></label>
 			<div class="col-md-10">
-				<select id="project" name="project" class="form-control">
+				<select id="project" name="project_id" class="form-control">
 					{% for p in project_list %}
-					<option {% if usage_event.project.id == p.id %}selected {% endif %}>{{ p }}</option>
+					<option {% if usage_event.project.id == p.id %}selected {% endif %} value="{{ p.id }}">{{ p }}</option>
 					{% endfor %}
 				</select>
 			</div>
 		</div>
 		<div class="form-group">
-			<label for="start_date" class="col-md-2 control-label"><b>Start</b></label>
+			<label for="start" class="col-md-2 control-label"><b>Start</b></label>
 			<div class="col-md-4">
-				<input type="text" id="start_date" name="start_date" class="form-control text-left" value="{{ start_date|date:'l, F jS, Y' }} @ {{ start_date|time:'g:i A' }}">
+				<input type="text" id="start" name="start" class="form-control text-left" value="{{ start|date:'l, F d, Y' }} @ {{ start|time:'h:i A' }}">
 			</div>
 		</div>
 		<div class="form-group">
-			<label for="end_date" class="col-md-2 control-label"><b>End</b></label>
+			<label for="end" class="col-md-2 control-label"><b>End</b></label>
 			<div class="col-md-4">
-				<input type="text" id="end_date" name="end_date" class="form-control text-left" value="{{ end_date|date:'l, F jS, Y' }} @ {{ end_date|time:'g:i A' }}">
+				<input type="text" id="end" name="end" class="form-control text-left" value="{{ end|date:'l, F d, Y' }} @ {{ end|time:'h:i A' }}">
 			</div>
 		</div>
 		<div class="form-group">
@@ -68,12 +69,12 @@
 			<label for="contest_reason" class="col-md-2 control-label"><b>Contest Reason</b></label>
 			<div class="col-md-10">
 				<select id="contest_reason" name="contest_reason" class="form-control" required>
-					<option disabled selected>Please select a contest reason</option>
-					<option>Incorrect operator selection</option>
-					<option>Incorrect customer selection</option>
-					<option>Incorrect project selection</option>
-					<option>Incorrect date selection</option>
-					<option>Incorrect tool selection</option>
+					<option selected disabled value="">Please select a contest reason</option>
+					<option value="operator">Incorrect operator selection</option>
+					<option value="customer">Incorrect customer selection</option>
+					<option value="project">Incorrect project selection</option>
+					<option value="datetime">Incorrect date/time selection</option>
+					<option value="tool">Incorrect tool selection</option>
 				</select>
 			</div>
 		</div>
@@ -85,30 +86,35 @@
 		</div>
 		<div class="form-group">
 			<div class="col-md-2"></div>
-			<div class="col-md-10"><button type="button" class="btn btn-default btn-md" onclick="window.location.href='{% url 'transaction_validation' %}'">Submit contest</button></div>
+			<div class="col-md-10"><input type="submit" class="btn btn-default btn-md" value="Submit Contest"></div>
 		</div>
 	</form>
 
 	<script>
-		let start_date_jq = $('#start_date');
-		let end_date_jq = $('#end_date');
-		start_date_jq.datetimepicker({format: 'dddd, MMMM Do, YYYY @ h:mm A'});
-		end_date_jq.datetimepicker({format: 'dddd, MMMM Do, YYYY @ h:mm A'});
+		// Disable form submissions if there are invalid fields
+		(function () {
+			'use strict'
 
-		function set_dropdown_selected()
-		{
-			if ('{{ start_date }}' && '{{ end_date }}')
-			{
-				let start = moment('{{ start_date|date:'l, F jS, Y' }} @ {{ start_date|time:'g:i A' }}');
-				let end = moment('{{ end_date|date:'l, F jS, Y' }} @ {{ end_date|time:'g:i A' }}');
-				if (start.month() === end.month() && start.year() === end.year() && start.format('MM/DD/YYYY') === start.startOf('month').format('MM/DD/YYYY') && end.format('MM/DD/YYYY') === end.endOf('month').format('MM/DD/YYYY'))
-				{
-					let month = start.format("MMMM, YYYY");
-					$('#month_list').val(month)
-				}
-			}
-		}
-		$(set_dropdown_selected());
+			var forms = document.querySelectorAll('.needs-validation')
+
+			// Loop over them and prevent submission
+			Array.prototype.slice.call(forms)
+				.forEach(function (form) {
+					form.addEventListener('submit', function (event) {
+						if (!form.checkValidity()) {
+							event.preventDefault()
+							event.stopPropagation()
+						}
+
+						form.classList.add('was-validated')
+					}, false)
+				})
+		})()
+
+		let start_date_jq = $('#start');
+		let end_date_jq = $('#end');
+		start_date_jq.datetimepicker({format: 'dddd, MMMM d, YYYY @ h:mm A'});
+		end_date_jq.datetimepicker({format: 'dddd, MMMM d, YYYY @ h:mm A'});
 	</script>
 
 {% endblock %}

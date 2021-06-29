@@ -1,11 +1,13 @@
+from datetime import datetime
+
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import F, Q
-from django.http import HttpResponseBadRequest, HttpResponse
-from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.shortcuts import render, get_object_or_404, reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from NEMO.models import UsageEvent, StaffCharge, User, Project, Tool
-from NEMO.utilities import month_list, get_month_timeframe, parse_start_and_end_date
+from NEMO.utilities import month_list, get_month_timeframe
 from NEMO.apps.NEMO_transaction_validation.models import Contest
 
 # Create your views here.
@@ -45,8 +47,8 @@ def transaction_validation(request):
 		"usage": usage_events,
 		"staff_charges": staff_charges,
 		"project_list": Project.objects.filter(active=True),
-		"start_date": start_date,
-		"end_date": end_date,
+		"start": start_date,
+		"end": end_date,
 		"month_list": month_list(),
 		"selected_staff": operator.id if operator else "all staff",
 		"selected_project": project.id if project else "all projects",
@@ -60,8 +62,8 @@ def contest_usage_event(request, usage_event_id):
 	dictionary = {
 		"usage_event": usage_event,
 		"tool_list": Tool.objects.filter(visible=True),
-		"start_date": usage_event.start,
-		"end_date": usage_event.end,
+		"start": usage_event.start,
+		"end": usage_event.end,
 		"user_list": User.objects.all(),
 		"project_list": Project.objects.filter(active=True)
 	}
@@ -72,19 +74,23 @@ def contest_usage_event(request, usage_event_id):
 def submit_contest(request, usage_event_id):
 	new_contest = Contest()
 	new_contest.transaction = get_object_or_404(UsageEvent, id=usage_event_id)
-	new_contest.tool = get_object_or_404(Tool, id=request.POST.get('tool_id'))
+	new_contest.tool = get_object_or_404(Tool, id=request.POST['tool_id'])
 	new_contest.admin_approved = False
 
 	try:
-		new_contest.operator = request.POST.get('operator')
-		new_contest.customer = request.POST.get('customer')
-		new_contest.project = request.POST.get('project')
-		new_contest.start = request.POST.get('start_date')
-		new_contest.end = request.POST.get('end_date')
-		new_contest.reason = request.POST.get('contest_reason')
-		new_contest.description = request.POST.get('contest_description')
+		new_contest.operator = get_object_or_404(User, id=request.POST['operator_id'])
+		new_contest.customer = get_object_or_404(User, id=request.POST['customer_id'])
+		new_contest.project = get_object_or_404(Project, id=request.POST['project_id'])
+
+		start = datetime.strptime(request.POST['start'], "%A, %B %d, %Y @ %I:%M %p")
+		end = datetime.strptime(request.POST['end'], "%A, %B %d, %Y @ %I:%M %p")
+		new_contest.start = start
+		new_contest.end = end
+
+		new_contest.reason = request.POST['contest_reason']
+		new_contest.description = request.POST['contest_description']
 	except Exception as e:
 		return HttpResponseBadRequest(str(e))
 
 	new_contest.save()
-	return HttpResponse()
+	return HttpResponseRedirect(reverse('transaction_validation'))
