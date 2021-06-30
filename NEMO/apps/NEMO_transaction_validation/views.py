@@ -1,14 +1,21 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
 from django.db.models import F, Q
 from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from NEMO.models import UsageEvent, StaffCharge, User, Project, Tool
-from NEMO.utilities import month_list, get_month_timeframe
+from NEMO.models import UsageEvent, User, Project, Tool, LandingPageChoice, Reservation, Alert, Resource
 from NEMO.apps.NEMO_transaction_validation.models import Contest
+from NEMO.utilities import month_list, get_month_timeframe
+from NEMO.views.alerts import delete_expired_alerts
+from NEMO.views.area_access import able_to_self_log_in_to_area, able_to_self_log_out_of_area
+from NEMO.views.landing import valid_url_for_landing
+from NEMO.views.notifications import delete_expired_notifications
 
 # Create your views here.
 @staff_member_required
@@ -97,3 +104,51 @@ def submit_contest(request, usage_event_id):
 
 	new_contest.save()
 	return HttpResponseRedirect(reverse('transaction_validation'))
+
+@login_required
+@require_GET
+def landing(request):
+	user: User = request.user
+	delete_expired_alerts()
+	delete_expired_notifications()
+	usage_events = UsageEvent.objects.filter(operator=user.id, end=None).prefetch_related("tool", "project")
+	tools_in_use = [u.tool.tool_or_parent_id() for u in usage_events]
+	fifteen_minutes_from_now = timezone.now() + timedelta(minutes=15)
+	landing_page_choices = LandingPageChoice.objects.all()
+	if request.device == "desktop":
+		landing_page_choices = landing_page_choices.exclude(hide_from_desktop_computers=True)
+	if request.device == "mobile":
+		landing_page_choices = landing_page_choices.exclude(hide_from_mobile_devices=True)
+	if not user.is_staff and not user.is_superuser and not user.is_technician:
+		landing_page_choices = landing_page_choices.exclude(hide_from_users=True)
+
+	if not settings.ALLOW_CONDITIONAL_URLS:
+		# validate all urls
+		landing_page_choices = [
+			landing_page_choice
+			for landing_page_choice in landing_page_choices
+			if valid_url_for_landing(landing_page_choice.url)
+		]
+
+	upcoming_reservations = Reservation.objects.filter(
+		user=user.id, end__gt=timezone.now(), cancelled=False, missed=False, shortened=False
+	).exclude(tool_id__in=tools_in_use, start__lte=fifteen_minutes_from_now).exclude(ancestor__shortened=True)
+	if user.in_area():
+		upcoming_reservations = upcoming_reservations.exclude(
+			area=user.area_access_record().area, start__lte=fifteen_minutes_from_now
+		)
+	upcoming_reservations = upcoming_reservations.order_by("start")[:3]
+	dictionary = {
+		"validation_required": UsageEvent.objects.filter(operator=user.id, validated=False).exclude(user=user.id).exists(),
+		"now": timezone.now(),
+		"alerts": Alert.objects.filter(
+			Q(user=None) | Q(user=user), debut_time__lte=timezone.now(), expired=False, deleted=False
+		),
+		"usage_events": usage_events,
+		"upcoming_reservations": upcoming_reservations,
+		"disabled_resources": Resource.objects.filter(available=False),
+		"landing_page_choices": landing_page_choices,
+		"self_log_in": able_to_self_log_in_to_area(request.user),
+		"self_log_out": able_to_self_log_out_of_area(request.user),
+	}
+	return render(request, "transaction_validation/landing_custom.html", dictionary)
