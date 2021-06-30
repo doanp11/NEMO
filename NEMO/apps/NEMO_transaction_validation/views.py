@@ -36,13 +36,10 @@ def transaction_validation(request):
 	usage_events = UsageEvent.objects.filter(
 		operator__is_staff=True, start__gte=start_date, start__lte=end_date
 	).exclude(operator=F("user"))
-	staff_charges = StaffCharge.objects.filter(start__gte=start_date, start__lte=end_date)
 	if operator:
 		usage_events = usage_events.exclude(~Q(operator_id=operator.id))
-		staff_charges = staff_charges.exclude(~Q(staff_member_id=operator.id))
 	if project:
 		usage_events = usage_events.filter(project=project)
-		staff_charges = staff_charges.filter(project=project)
 
 	contests = Contest.objects.filter(admin_approved=False)
 	contest_list = set()
@@ -51,7 +48,6 @@ def transaction_validation(request):
 
 	dictionary = {
 		"usage": usage_events,
-		"staff_charges": staff_charges,
 		"project_list": Project.objects.filter(active=True),
 		"contest_list": contest_list,
 		"start_date": start_date,

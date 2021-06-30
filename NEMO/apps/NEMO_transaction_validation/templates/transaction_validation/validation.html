@@ -14,14 +14,14 @@
 	be made to it. Press the green 'Validate' button on an individual row to validate a charge. Charges that have already been validated are
 	highlighted in <span class="success-highlight">green</span>.</p>
 
-	<p>Do not validate a charge if part or all of it is incorrect. Instead, visit the user office so an adjustment can be entered
-	into the billing system. Furthermore, please visit the user office if there is a charge that you forgot to enter.</p>
+	<p>Each charge can also be contested, which means that an adjustment is needed. Press the yellow 'Contest' button on an individual row to
+	contest the charge. Charges that are already being contested are highlighted in <span class="warning-highlight">yellow</span></p>
 
 	<form id="remote_work_form" class="form-horizontal" role="form" style="margin-top: 20px">
 		<input type="hidden" name="csv" id="hidden_data_csv"/>
 		<div class="form-group">
 			<div class="control-label col-md-5">
-				<label class="text-right" style="width: 100%" for="project">
+				<label class="text-left" style="width: 100%" for="project">
 					View charges for <b>{{ user|escapejs }}</b> and for
 				</label>
 			</div>
@@ -66,43 +66,6 @@
 		</div>
 	</form>
 
-	<h3>Staff charges</h3>
-	<table class="table">
-		<thead>
-		<tr>
-			<th>ID</th>
-			<th>Staff member</th>
-			<th>Customer</th>
-			<th>Project</th>
-			<th>Start</th>
-			<th>End</th>
-			<th>Validate</th>
-		</tr>
-		</thead>
-		<tbody>
-		{% for c in staff_charges %}
-			<tr {% if c.validated %}class="success-highlight"{% endif %} id="staff_charge_row_{{ forloop.counter }}">
-				<td>{{ c.id }}</td>
-				<td>{{ c.staff_member }}</td>
-				<td>{{ c.customer }}</td>
-				<td>{{ c.project }}</td>
-				<td>{{ c.start }}</td>
-				<td>{{ c.end|default_if_none:'' }}</td>
-				<td>{% if not c.validated %}<button class="btn btn-success">Validate</button>{% endif %}</td>
-			</tr>
-			{% for area_access_record in c.areaaccessrecord_set.all %}
-				<tr style="font-size: smaller">
-					<td style="border-top: none"></td>
-					<td colspan="3" style="border-top-style: dotted">{{ area_access_record.area.name }} access</td>
-					<td style="border-top-style: dotted">{{ area_access_record.start }}</td>
-					<td style="border-top-style: dotted">{{ area_access_record.end|default_if_none:'' }}</td>
-					<td style="border-top: none"></td>
-				</tr>
-			{%  endfor %}
-		{% endfor %}
-		</tbody>
-	</table>
-	<br>
 	<h3>Tool usage</h3>
 	<table class="table">
 		<thead>
@@ -126,8 +89,8 @@
 				<td>{{ u.operator }}</td>
 				<td>{{ u.user }}</td>
 				<td>{{ u.project }}</td>
-				<td>{{ u.start }}</td>
-				<td>{{ u.end|default_if_none:'In progress' }}</td>
+				<td>{{ u.start|date:"l, F d, Y" }} @ {{ u.start|time:"h:i A" }}</td>
+				<td>{% if u.end is None %}In progress{% else %}{{ u.end|date:"l, F d, Y" }} @ {{ u.end|time:"h:i A" }}{% endif %}</td>
 				<td>{% if u.duration != 'In progress' %}{{ u.start|timesince:u.end }}{% endif %}</td>
 				<td>{{ u.tool }}</td>
 				<td>{% if not u.validated %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_usage_event' u.id %}', '#usage_event_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
