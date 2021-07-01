@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('reason', models.TextField()),
                 ('description', models.TextField(blank=True, null=True)),
                 ('admin_approved', models.BooleanField(default=False)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='contest_customer', to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='contest_customer', to=settings.AUTH_USER_MODEL)),
                 ('operator', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='contest_operator', to=settings.AUTH_USER_MODEL)),
                 ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='NEMO.Project')),
                 ('tool', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='NEMO.Tool')),

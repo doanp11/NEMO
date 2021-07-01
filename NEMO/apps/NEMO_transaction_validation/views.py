@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from NEMO.models import UsageEvent, User, Project, Tool, LandingPageChoice, Reservation, Alert, Resource
 from NEMO.apps.NEMO_transaction_validation.models import Contest
-from NEMO.utilities import month_list, get_month_timeframe
+from NEMO.utilities import month_list, get_month_timeframe, parse_start_and_end_date
 from NEMO.views.alerts import delete_expired_alerts
 from NEMO.views.area_access import able_to_self_log_in_to_area, able_to_self_log_out_of_area
 from NEMO.views.landing import valid_url_for_landing
@@ -89,7 +89,7 @@ def submit_contest(request, usage_event_id):
 
 	try:
 		new_contest.operator = get_object_or_404(User, id=request.POST['operator_id'])
-		new_contest.customer = get_object_or_404(User, id=request.POST['customer_id'])
+		new_contest.user = get_object_or_404(User, id=request.POST['customer_id'])
 		new_contest.project = get_object_or_404(Project, id=request.POST['project_id'])
 
 		start = datetime.strptime(request.POST['start'], "%A, %B %d, %Y @ %I:%M %p")

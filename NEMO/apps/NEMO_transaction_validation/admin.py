@@ -15,7 +15,7 @@ class ContestAdmin(admin.ModelAdmin):
         "transaction",
         "reason",
         "tool",
-        "customer",
+        "user",
         "operator",
         "project",
         "start",
