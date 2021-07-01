@@ -91,31 +91,42 @@
 	</form>
 
 	<script>
+		function enableSubmission() {
+			$( '#submit_contest' ).prop( 'disabled', false );
+		}
+
 		// Disable form submissions if there are invalid fields
 		(function () {
 			'use strict'
 
-			var form = $( '.needs-validation' );
+			var forms = document.querySelectorAll('.needs-validation')
 
-			// Prevent submission on invalid form
-			form.addEventListener('submit', function (event) {
-				if( !form.checkValidity() ){
-					event.preventDefault();
-					event.stopPropagation();
-				}
+			// Loop over them and prevent submission
+			Array.prototype.slice.call(forms)
+				.forEach(function (form) {
+					form.addEventListener('submit', function (event) {
+						if (!form.checkValidity()) {
+							event.preventDefault()
+							event.stopPropagation()
+						}
 
-				form.classList.add('was-validated');
-			}, false)
+						form.classList.add('was-validated')
+					}, false)
+				})
 		})()
 
 		let start_date_jq = $('#start');
 		let end_date_jq = $('#end');
-		start_date_jq.datetimepicker({format: 'dddd, MMMM d, YYYY @ h:mm A'});
-		end_date_jq.datetimepicker({format: 'dddd, MMMM d, YYYY @ h:mm A'});
-
-		function enableSubmission() {
-			$( '#submit_contest' ).prop( 'disabled', false );
-		}
+		start_date_jq.datetimepicker({
+			format: 'dddd, MMMM DD, YYYY @ h:mm A'
+		}).on('dp.change', function(e) {
+			enableSubmission()
+		});
+		end_date_jq.datetimepicker({
+			format: 'dddd, MMMM DD, YYYY @ h:mm A'
+		}).on('dp.change', function(e) {
+			enableSubmission()
+		});
 	</script>
 
 {% endblock %}
