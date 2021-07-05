@@ -15,7 +15,7 @@
 		<div class="form-group">
 			<label for="operator" class="col-md-2 control-label"><b>Operator</b></label>
 			<div class="col-md-10">
-				<select id="operator" name="operator_id" class="form-control" onchange="enableSubmission()">
+				<select id="operator" name="operator_id" class="form-control" onchange="enableSubmission()" disabled>
 					{% for u in user_list %}
 					<option {% if usage_event.operator.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
 					{% endfor %}
@@ -70,7 +70,7 @@
 			<div class="col-md-10">
 				<select id="contest_reason" name="contest_reason" class="form-control" required>
 					<option selected disabled value="">Please select a contest reason</option>
-					<option value="operator">Incorrect operator selection</option>
+					<!--option value="operator">Incorrect operator selection</option-->
 					<option value="customer">Incorrect customer selection</option>
 					<option value="project">Incorrect project selection</option>
 					<option value="datetime">Incorrect date/time selection</option>
