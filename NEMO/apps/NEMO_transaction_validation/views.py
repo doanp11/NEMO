@@ -83,12 +83,12 @@ def contest_usage_event(request, usage_event_id):
 @require_POST
 def submit_contest(request, usage_event_id):
 	new_contest = Contest()
+	new_contest.operator = request.user
 	new_contest.transaction = get_object_or_404(UsageEvent, id=usage_event_id)
 	new_contest.tool = get_object_or_404(Tool, id=request.POST['tool_id'])
 	new_contest.admin_approved = False
 
 	try:
-		new_contest.operator = get_object_or_404(User, id=request.POST['operator_id'])
 		new_contest.user = get_object_or_404(User, id=request.POST['customer_id'])
 		new_contest.project = get_object_or_404(Project, id=request.POST['project_id'])
 
