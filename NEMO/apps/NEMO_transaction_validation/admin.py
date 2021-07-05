@@ -4,10 +4,6 @@ from django.contrib.admin import register
 from NEMO.apps.NEMO_transaction_validation.models import Contest
 
 # Register your models here.
-def approve_contest(modeladmin, request, queryset):
-    queryset.update(admin_approved=True)
-approve_contest.short_description = "Approve selected contests"
-
 @register(Contest)
 class ContestAdmin(admin.ModelAdmin):
     list_display = (
@@ -29,4 +25,3 @@ class ContestAdmin(admin.ModelAdmin):
         "tool",
     )
     date_hierarchy = "start"
-    actions = [approve_contest]
