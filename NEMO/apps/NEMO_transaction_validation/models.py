@@ -19,7 +19,7 @@ class Contest(models.Model):
     end = models.DateTimeField(null=True, blank=True)
     reason = models.TextField(choices=CONTEST_REASONS, help_text="Provide the reason for submitting this transaction contest")
     description = models.TextField(blank=True, null=True, help_text="Provide a detailed reason for submitting this transaction contest")
-    admin_approved = models.BooleanField(default=False, help_text="<b>Check this to approve the contest</b>")
+    admin_approved = models.BooleanField(default=False, help_text="<b>Check this to approve the contest and to apply the changes when saving this form</b>")
 
     class Meta:
         ordering = ['operator']
