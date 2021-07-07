@@ -48,13 +48,14 @@ def transaction_validation(request):
 	if project:
 		usage_events = usage_events.filter(project=project)
 
+	# Determine Usage Events with contest(s) submitted
 	contests = Contest.objects.filter(admin_approved=False)
 	contest_list = set()
 	for contest in contests:
 		contest_list.add(contest.transaction.id)
 
 	dictionary = {
-		"usage": usage_events.order_by('id'),
+		"usage": usage_events.order_by('validated', 'id'),
 		"project_list": Project.objects.filter(active=True),
 		"contest_list": contest_list,
 		"start_date": start_date,

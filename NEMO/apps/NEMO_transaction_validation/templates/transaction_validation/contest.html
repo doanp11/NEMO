@@ -8,7 +8,10 @@
 {% block content %}
 	<h1>Contest Usage Event</h1>
 
-	<p>You have selected the Usage Event detailed below to contest. Please select a general reason this item should be contested and enter a description of the specifics. Once this form is submitted, the Usage Event will be placed in contested status until an administrator can review the record and address it as needed.</p>
+	<p>You have selected the Usage Event detailed below to contest. Please select a general reason this item should be contested and
+		enter a description of the specifics. If your contest has more than one reason listed, please submit individual contests for
+		each of your reasons. Once this form is submitted, the Usage Event will be placed in <span class="warning-highlight">contested status</span> until an
+		administrator can review the record and address it as needed.</p>
 
 	<form id="contest_form" class="form-horizontal needs-validation" action="{% url 'submit_contest' usage_event.id %}" method="post">
 		{% csrf_token %}
@@ -123,7 +126,8 @@
 			enableSubmission()
 		});
 		end_date_jq.datetimepicker({
-			format: 'dddd, MMMM DD, YYYY @ h:mm A'
+			format: 'dddd, MMMM DD, YYYY @ h:mm A',
+			maxDate: new Date()
 		}).on('dp.change', function(e) {
 			enableSubmission()
 		});
