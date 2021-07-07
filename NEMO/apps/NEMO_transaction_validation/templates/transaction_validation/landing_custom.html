@@ -30,6 +30,18 @@
 				</a>
 			</div>
 		{% endif %}
+		{% if approval_required %}
+		{% if user.is_staff or user.is_superuser %}
+			<div class="col-lg-4">
+				<h3>Admin Approval Needed</h3>
+				<a href="{% url 'review_contests' %}" style="text-decoration: none">
+					<div class="alert alert-danger">
+						There are contests that require admin approval. {% if user.is_superuser %}Please review them now.{% endif %}
+					</div>
+				</a>
+			</div>
+		{% endif %}
+		{% endif %}
 		{% if upcoming_reservations %}
 			<div class="col-lg-4">
 				<h3>Upcoming reservations</h3>

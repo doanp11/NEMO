@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.db.models import F, Q
-from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.http import HttpResponseBadRequest, HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, get_object_or_404, reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
@@ -106,6 +106,64 @@ def submit_contest(request, usage_event_id):
 	new_contest.save()
 	return HttpResponseRedirect(reverse('transaction_validation'))
 
+@staff_member_required(login_url=None)
+@require_GET
+def review_contests(request):
+	user: User = request.user
+
+	dictionary = {
+		"contests": Contest.objects.exclude(transaction__validated=True).order_by('transaction__id')
+	}
+	return render(request, "transaction_validation/review_contests.html", dictionary)
+
+@staff_member_required(login_url=None)
+@require_POST
+def approve_contest(request, contest_id):
+	user: User = request.user
+
+	# Check if user has admin authorizations
+	if not user.is_superuser:
+		return HttpResponseBadRequest("You are not authorized to approve contests.")
+
+	# Get models
+	contest = get_object_or_404(Contest, id=contest_id)
+	usage_event = get_object_or_404(UsageEvent, id=contest.transaction.id)
+
+	# Check and create a Contest model if original Usage Event has not been saved as a Contest model
+	orig_ue_created = Contest.objects.filter(transaction=usage_event.id, reason='original').exists()
+	if not orig_ue_created:
+		orig_usage_event = Contest()
+		orig_usage_event.transaction = usage_event
+		orig_usage_event.user = usage_event.user
+		orig_usage_event.operator = usage_event.operator
+		orig_usage_event.project = usage_event.project
+		orig_usage_event.tool = usage_event.tool
+		orig_usage_event.start = usage_event.start
+		orig_usage_event.end = usage_event.end
+		orig_usage_event.reason = 'original'
+		orig_usage_event.description = 'Original Transaction'
+		orig_usage_event.admin_approved = True
+		orig_usage_event.save()
+
+	# Update Contest model
+	contest.admin_approved = True
+	contest.save()
+
+	# Update Usage Event model
+	contest_reason = contest.reason
+	if contest_reason == "customer":
+		usage_event.user = contest.user
+	if contest_reason == "project":
+		usage_event.project = contest.project
+	if contest_reason == "datetime":
+		usage_event.start = contest.start
+		usage_event.end = contest.end
+	if contest_reason == "tool":
+		usage_event.tool = contest.tool
+	usage_event.save()
+
+	return HttpResponseRedirect(reverse('review_contests'))
+
 @login_required
 @require_GET
 def landing(request):
@@ -141,6 +199,7 @@ def landing(request):
 	upcoming_reservations = upcoming_reservations.order_by("start")[:3]
 	dictionary = {
 		"validation_required": UsageEvent.objects.filter(operator=user.id, validated=False).exclude(user=user.id).exists(),
+		"approval_required": Contest.objects.filter(admin_approved=False).exists(),
 		"now": timezone.now(),
 		"alerts": Alert.objects.filter(
 			Q(user=None) | Q(user=user), debut_time__lte=timezone.now(), expired=False, deleted=False

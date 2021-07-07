@@ -93,7 +93,7 @@
 				<td>{% if u.end is None %}In progress{% else %}{{ u.end|date:"l, F d, Y" }} @ {{ u.end|time:"h:i A" }}{% endif %}</td>
 				<td>{% if u.duration != 'In progress' %}{{ u.start|timesince:u.end }}{% endif %}</td>
 				<td>{{ u.tool }}</td>
-				<td>{% if not u.validated %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_usage_event' u.id %}', '#usage_event_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
+				<td>{% if not u.validated and u.id not in contest_list %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_usage_event' u.id %}', '#usage_event_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
 				<td>{% if not u.validated %}<button class="btn btn-warning" onclick="window.location.href='{% url 'contest_usage_event' u.id %}'">Contest</button>{% endif %}</td>
 			</tr>
 		{% endfor %}

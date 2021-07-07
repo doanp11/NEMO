@@ -9,6 +9,7 @@ class Contest(models.Model):
         ('project',  'Incorrect project selection'),
         ('datetime', 'Incorrect date/time selection'),
         ('tool',     'Incorrect tool selection'),
+        ('original', 'Original usage event'),
     ]
     transaction = models.ForeignKey(UsageEvent, help_text="Usage Event to be contested", on_delete=models.CASCADE)
     user = models.ForeignKey(User, help_text="Customer that the staff performed the task on behalf of", related_name="contest_customer", on_delete=models.CASCADE)
