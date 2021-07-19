@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Contest staff charge{% endblock %}
+{% block extrahead %}
+	<script type="text/javascript" src="{% static "datetimepicker/bootstrap-datetimepicker.js" %}"></script>
+	<link rel="stylesheet" type="text/css" href="{% static "datetimepicker/bootstrap-datetimepicker.css" %}"/>
+{% endblock %}
+{% block content %}
+	<h1>Contest Staff Charge</h1>
+
+	<p>You have selected the Staff Charge detailed below to contest. Please select a general reason this item should be contested and
+		enter a description of the specifics. If your contest has more than one reason listed, please submit individual contests for
+		each of your reasons. Once this form is submitted, the Staff Charge will be placed in <span class="warning-highlight">contested status</span> until an
+		administrator can review the record and address it as needed.</p>
+
+	<form id="contest_form" class="form-horizontal needs-validation" action="{% url 'submit_sc_contest' transaction.id %}" method="post">
+		{% csrf_token %}
+		<div class="form-group">
+			<label for="operator" class="col-md-2 control-label"><b>Operator</b></label>
+			<div class="col-md-10">
+				<select id="operator" name="operator_id" class="form-control" onchange="enableSubmission()" disabled>
+					{% for u in user_list %}
+					<option {% if transaction.staff_member.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
+					{% endfor %}
+				</select>
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="customer" class="col-md-2 control-label"><b>Customer</b></label>
+			<div class="col-md-10">
+				<select id="customer" name="customer_id" class="form-control" onchange="enableSubmission()">
+					{% for u in user_list %}
+					<option {% if transaction.customer.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
+					{% endfor %}
+				</select>
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="project" class="col-md-2 control-label"><b>Project</b></label>
+			<div class="col-md-10">
+				<select id="project" name="project_id" class="form-control" onchange="enableSubmission()">
+					{% for p in project_list %}
+					<option {% if transaction.project.id == p.id %}selected {% endif %} value="{{ p.id }}">{{ p }}</option>
+					{% endfor %}
+				</select>
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="start" class="col-md-2 control-label"><b>Start</b></label>
+			<div class="col-md-4">
+				<input type="text" id="start" name="start" class="form-control text-left" value="{{ start|date:'l, F d, Y' }} @ {{ start|time:'h:i A' }}">
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="end" class="col-md-2 control-label"><b>End</b></label>
+			<div class="col-md-4">
+				<input type="text" id="end" name="end" class="form-control text-left" value="{{ end|date:'l, F d, Y' }} @ {{ end|time:'h:i A' }}">
+			</div>
+		</div>
+		<div style="border-top: 1px solid #ddd">
+			<h3>Area Access Records <button class="btn btn-success">Add</button></h3>
+			<br>
+		</div>
+		<div>
+			<!--label class="col-md-3"><b>Area</b></label>
+			<label class="col-md-4"><b>Start</b></label>
+			<label class="col-md-4"><b>End</b></label>
+			<label class="col-md-1"><b>Remove</b></label>
+		</div>
+		<div class="form-group"-->
+
+			<table class="table">
+				<thead>
+				<tr>
+					<th>Area</th>
+					<th>Start</th>
+					<th>End</th>
+					<th>Remove</th>
+				</tr>
+				</thead>
+				<tbody>
+				{% for area_access_record in transaction.areaaccessrecord_set.all %}
+				<tr style="border-top: 2px solid #ddd" id="area_access_record_{{ area_access_record.id }}">
+					<td>
+						<select id="area_id_{{ area_access_record.id }}" name="area_id" class="form-control" onchange="enableSubmission()">
+							{% for a in area_list %}
+							<option {% if area == area_access_record.area %}selected {% endif %} value="{{ area_access_record.area.id }}">{{ a }}</option>
+							{% endfor %}
+						</select>
+					</td>
+					<td>
+						<div style="position: relative">
+							<input type="text" id="start_{{ area_access_record.id }}" name="start_{{ area_access_record.id }}" class="form-control text-left" value="{{ area_access_record.start|date:'l, F d, Y' }} @ {{ area_access_record.start|time:'h:i A' }}">
+						</div>
+					</td>
+					<td>
+						<div style="position: relative">
+							<input type="text" id="end_{{ area_access_record.id }}" name="end_{{ area_access_record.id }}" class="form-control text-left" value="{{ area_access_record.end|date:'l, F d, Y' }} @ {{ area_access_record.end|time:'h:i A' }}">
+						</div>
+					</td>
+					<td><input type="checkbox"></td>
+				</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		<div style="border-top: 1px solid #ddd"><br></div>
+		<div class="form-group">
+			<label for="contest_reason" class="col-md-2 control-label"><b>Contest Reason</b></label>
+			<div class="col-md-10">
+				<select id="contest_reason" name="contest_reason" class="form-control" required>
+					<option selected disabled value="">Please select a contest reason</option>
+					<!--option value="operator">Incorrect operator selection</option-->
+					<option value="customer">Incorrect customer selection</option>
+					<option value="project">Incorrect project selection</option>
+					<option value="datetime">Incorrect date/time selection</option>
+					<option value="area">Incorrect area(s) selection</option>
+				</select>
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="col-md-2 control-label"><b>Contest Description</b></label>
+			<div class="col-md-10">
+				<textarea id="contest_description" name="contest_description" class="form-control" rows="3" required></textarea>
+			</div>
+		</div>
+		<div class="form-group">
+			<div class="col-md-2"></div>
+			<div class="col-md-10"><input type="submit" id="submit_contest" class="btn btn-default btn-md" value="Submit Contest" disabled></div>
+		</div>
+	</form>
+
+	<script>
+		function enableSubmission() {
+			$( '#submit_contest' ).prop( 'disabled', false );
+		}
+
+		// Disable form submissions if there are invalid fields
+		(function () {
+			'use strict'
+
+			var forms = document.querySelectorAll('.needs-validation')
+
+			// Loop over them and prevent submission
+			Array.prototype.slice.call(forms)
+				.forEach(function (form) {
+					form.addEventListener('submit', function (event) {
+						if (!form.checkValidity()) {
+							event.preventDefault()
+							event.stopPropagation()
+						}
+
+						form.classList.add('was-validated')
+					}, false)
+				})
+		})()
+
+		let start_date_jq = $("input[id^='start']");
+		let end_date_jq = $("input[id^='end']");
+		start_date_jq.each( function() {
+			$( this ).datetimepicker({
+				format: 'dddd, MMMM DD, YYYY @ h:mm A',
+				defaultDate: $( this ).val()
+			}).on('dp.change', function(e) {
+				enableSubmission()
+			});
+		})
+		end_date_jq.each( function() {
+			$( this ).datetimepicker({
+				format: 'dddd, MMMM DD, YYYY @ h:mm A',
+				defaultDate: $( this ).val(),
+				maxDate: 'now'
+			}).on('dp.change', function(e) {
+				enableSubmission()
+			});
+		})
+	</script>
+
+{% endblock %}

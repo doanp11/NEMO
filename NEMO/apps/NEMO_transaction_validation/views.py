@@ -9,9 +9,9 @@ from django.shortcuts import render, get_object_or_404, reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from NEMO.models import UsageEvent, User, Project, Tool, LandingPageChoice, Reservation, Alert, Resource
-from NEMO.apps.NEMO_transaction_validation.models import Contest
-from NEMO.utilities import month_list, get_month_timeframe, parse_start_and_end_date
+from NEMO.models import UsageEvent, StaffCharge, User, Project, Tool, LandingPageChoice, Reservation, Alert, Resource, Area
+from NEMO.apps.NEMO_transaction_validation.models import ContestUsageEvent, ContestStaffCharge
+from NEMO.utilities import month_list, get_month_timeframe, parse_start_and_end_date, BasicDisplayTable
 from NEMO.views.alerts import delete_expired_alerts
 from NEMO.views.area_access import able_to_self_log_in_to_area, able_to_self_log_out_of_area
 from NEMO.views.landing import valid_url_for_landing
@@ -43,21 +43,100 @@ def transaction_validation(request):
 	usage_events = UsageEvent.objects.filter(
 		operator__is_staff=True, start__gte=start_date, start__lte=end_date
 	).exclude(operator=F("user"))
+	staff_charges = StaffCharge.objects.filter(start__gte=start_date, start__lte=end_date)
 	if operator:
 		usage_events = usage_events.exclude(~Q(operator_id=operator.id))
+		staff_charges = staff_charges.exclude(~Q(staff_member_id=operator.id))
 	if project:
 		usage_events = usage_events.filter(project=project)
+		staff_charges = staff_charges.filter(project=project)
 
-	# Determine Usage Events with contest(s) submitted
-	contests = Contest.objects.filter(admin_approved=False)
-	contest_list = set()
-	for contest in contests:
-		contest_list.add(contest.transaction.id)
+	csv_export = bool(request.GET.get("csv", False))
+	if csv_export:
+		table_result = BasicDisplayTable()
+		TYPE, ID, ITEM, STAFF, CUSTOMER, PROJECT, START, END = (
+			"item_type",
+			"item_id",
+			"item",
+			"staff_member",
+			"customer",
+			"project",
+			"start_date",
+			"end_date",
+		)
+		table_result.headers = [
+			(TYPE, "Item Type"),
+			(ID, "Item Id"),
+			(ITEM, "Item"),
+			(STAFF, "Staff"),
+			(CUSTOMER, "Customer"),
+			(PROJECT, "Project"),
+			(START, "Start"),
+			(END, "End"),
+		]
+		for usage in usage_events:
+			table_result.add_row(
+				{
+					ID: usage.tool.id,
+					TYPE: "Tool Usage",
+					ITEM: usage.tool,
+					STAFF: usage.operator,
+					CUSTOMER: usage.user,
+					START: usage.start.astimezone(timezone.get_current_timezone()).strftime("%m/%d/%Y @ %I:%M %p"),
+					END: usage.end.astimezone(timezone.get_current_timezone()).strftime("%m/%d/%Y @ %I:%M %p") if usage.end else "",
+					PROJECT: usage.project,
+				}
+			)
+		for staff_charge in staff_charges:
+			for access in staff_charge.areaaccessrecord_set.all():
+				table_result.add_row(
+					{
+						ID: access.area.id,
+						TYPE: "Area Access",
+						ITEM: access.area,
+						STAFF: staff_charge.staff_member,
+						CUSTOMER: access.customer,
+						START: access.start.astimezone(timezone.get_current_timezone()).strftime("%m/%d/%Y @ %I:%M %p"),
+						END: access.end.astimezone(timezone.get_current_timezone()).strftime("%m/%d/%Y @ %I:%M %p") if access.end else "",
+						PROJECT: access.project,
+					}
+				)
+			table_result.add_row(
+				{
+					ID: staff_charge.id,
+					TYPE: "Staff Charge",
+					ITEM: "Staff Charge",
+					STAFF: staff_charge.staff_member,
+					CUSTOMER: staff_charge.customer,
+					START: staff_charge.start.astimezone(timezone.get_current_timezone()).strftime(
+						"%m/%d/%Y @ %I:%M %p"
+					),
+					END: staff_charge.end.astimezone(timezone.get_current_timezone()).strftime("%m/%d/%Y @ %I:%M %p") if staff_charge.end else "",
+					PROJECT: staff_charge.project,
+				}
+			)
+		response = table_result.to_csv()
+		filename = f"remote_work_{start_date.strftime('%m_%d_%Y')}_to_{end_date.strftime('%m_%d_%Y')}.csv"
+		response["Content-Disposition"] = f'attachment; filename="{filename}"'
+		return response
+
+	# Determine Usage Events and Staff Charges with contest(s) submitted
+	ue_contests = ContestUsageEvent.objects.filter(admin_approved=False)
+	sc_contests = ContestStaffCharge.objects.filter(admin_approved=False)
+
+	ue_contest_list = set()
+	sc_contest_list = set()
+	for contest in ue_contests:
+		ue_contest_list.add(contest.transaction.id)
+	for contest in sc_contests:
+		sc_contest_list.add(contest.transaction.id)
 
 	dictionary = {
 		"usage": usage_events.order_by('validated', 'id'),
+		"staff_charges": staff_charges.order_by('validated', 'id'),
 		"project_list": Project.objects.filter(active=True),
-		"contest_list": contest_list,
+		"ue_contest_list": ue_contest_list,
+		"sc_contest_list": sc_contest_list,
 		"start_date": start_date,
 		"end_date": end_date,
 		"month_list": month_list(),
@@ -67,36 +146,47 @@ def transaction_validation(request):
 	return render(request, "transaction_validation/validation.html", dictionary)
 
 @staff_member_required(login_url=None)
-def contest_usage_event(request, usage_event_id):
-	usage_event = get_object_or_404(UsageEvent, id=usage_event_id)
+def contest_transaction(request, transaction_id, transaction_type='usage_event'):
+	if transaction_type is 'staff_charge':
+		transaction = get_object_or_404(StaffCharge, id=transaction_id)
+		template = "transaction_validation/contest_staff_charge.html"
+	else:
+		transaction = get_object_or_404(UsageEvent, id=transaction_id)
+		template = "transaction_validation/contest_usage_event.html"
 
 	dictionary = {
-		"usage_event": usage_event,
-		"tool_list": Tool.objects.filter(visible=True),
-		"start": usage_event.start,
-		"end": usage_event.end,
+		"transaction": transaction,
+		"start": transaction.start,
+		"end": transaction.end,
 		"user_list": User.objects.all(),
-		"project_list": Project.objects.filter(active=True)
+		"project_list": Project.objects.filter(active=True),
 	}
-	return render(request, "transaction_validation/contest.html", dictionary)
+	if transaction_type is 'staff_charge':
+		dictionary['area_list'] = Area.objects.all()
+	else:
+		dictionary['tool_list'] = Tool.objects.filter(visible=True)
+	return render(request, template, dictionary)
 
 @staff_member_required(login_url=None)
 @require_POST
-def submit_contest(request, usage_event_id):
-	new_contest = Contest()
+def submit_contest(request, transaction_id, transaction_type='usage_event'):
+	if transaction_type is 'staff_charge':
+		new_contest = ContestStaffCharge()
+		new_contest.transaction = get_object_or_404(StaffCharge, id=transaction_id)
+	else:
+		new_contest = ContestUsageEvent()
+		new_contest.transaction = get_object_or_404(UsageEvent, id=transaction_id)
+		new_contest.tool = get_object_or_404(Tool, id=request.POST['tool_id'])
+
 	new_contest.operator = request.user
-	new_contest.transaction = get_object_or_404(UsageEvent, id=usage_event_id)
-	new_contest.tool = get_object_or_404(Tool, id=request.POST['tool_id'])
 	new_contest.admin_approved = False
 
 	try:
 		new_contest.user = get_object_or_404(User, id=request.POST['customer_id'])
 		new_contest.project = get_object_or_404(Project, id=request.POST['project_id'])
 
-		start = datetime.strptime(request.POST['start'], "%A, %B %d, %Y @ %I:%M %p")
-		end = datetime.strptime(request.POST['end'], "%A, %B %d, %Y @ %I:%M %p")
-		new_contest.start = start
-		new_contest.end = end
+		new_contest.start = datetime.strptime(request.POST['start'], "%A, %B %d, %Y @ %I:%M %p")
+		new_contest.end = datetime.strptime(request.POST['end'], "%A, %B %d, %Y @ %I:%M %p")
 
 		new_contest.reason = request.POST['contest_reason']
 		new_contest.description = request.POST['contest_description']
@@ -112,7 +202,7 @@ def review_contests(request):
 	user: User = request.user
 
 	dictionary = {
-		"contests": Contest.objects.exclude(transaction__validated=True).order_by('transaction__id')
+		"contests": ContestUsageEvent.objects.exclude(transaction__validated=True).order_by('transaction__id')
 	}
 	return render(request, "transaction_validation/review_contests.html", dictionary)
 
@@ -126,13 +216,13 @@ def approve_contest(request, contest_id):
 		return HttpResponseBadRequest("You are not authorized to approve contests.")
 
 	# Get models
-	contest = get_object_or_404(Contest, id=contest_id)
+	contest = get_object_or_404(ContestUsageEvent, id=contest_id)
 	usage_event = get_object_or_404(UsageEvent, id=contest.transaction.id)
 
 	# Check and create a Contest model if original Usage Event has not been saved as a Contest model
-	orig_ue_created = Contest.objects.filter(transaction=usage_event.id, reason='original').exists()
+	orig_ue_created = ContestUsageEvent.objects.filter(transaction=usage_event.id, reason='original').exists()
 	if not orig_ue_created:
-		orig_usage_event = Contest()
+		orig_usage_event = ContestUsageEvent()
 		orig_usage_event.transaction = usage_event
 		orig_usage_event.user = usage_event.user
 		orig_usage_event.operator = usage_event.operator
@@ -199,7 +289,7 @@ def landing(request):
 	upcoming_reservations = upcoming_reservations.order_by("start")[:3]
 	dictionary = {
 		"validation_required": UsageEvent.objects.filter(operator=user.id, validated=False).exclude(user=user.id).exists(),
-		"approval_required": Contest.objects.filter(admin_approved=False).exists(),
+		"approval_required": ContestUsageEvent.objects.filter(admin_approved=False).exists(),
 		"now": timezone.now(),
 		"alerts": Alert.objects.filter(
 			Q(user=None) | Q(user=user), debut_time__lte=timezone.now(), expired=False, deleted=False

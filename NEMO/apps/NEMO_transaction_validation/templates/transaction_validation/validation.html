@@ -66,6 +66,49 @@
 		</div>
 	</form>
 
+	<h3>Staff charges</h3>
+	<table class="table">
+		<thead>
+		<tr>
+			<th>ID</th>
+			<th>Staff member</th>
+			<th>Customer</th>
+			<th>Project</th>
+			<th>Start</th>
+			<th>End</th>
+			<th>Duration</th>
+			<th>Validate</th>
+			<th>Contest</th>
+		</tr>
+		</thead>
+		<tbody>
+		{% for c in staff_charges %}
+			<tr {% if c.validated %}class="success-highlight"{% elif c.id in sc_contest_list %}class="warning-highlight"{% endif %} id="staff_charge_row_{{ forloop.counter }}">
+				<td>{{ c.id }}</td>
+				<td>{{ c.staff_member }}</td>
+				<td>{{ c.customer }}</td>
+				<td>{{ c.project }}</td>
+				<td>{{ c.start }}</td>
+				<td>{% if c.end is None %}In progress{% else %}{{ c.end }}{% endif %}</td>
+				<td>{% if c.end is not None %}{{ c.start|timesince:c.end }}{% endif %}</td>
+				<td>{% if not c.validated %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_staff_charge' c.id %}', this, '#staff_charge_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
+				<td>{% if not c.validated %}<button class="btn btn-warning" onclick="window.location.href='{% url 'contest_staff_charge' c.id %}'">Contest</button>{% endif %}</td>
+			</tr>
+			{% for area_access_record in c.areaaccessrecord_set.all %}
+				<tr {% if c.validated %}class="success-highlight"{% elif c.id in sc_contest_list %}class="warning-highlight"{% endif %} style="font-size: smaller">
+					<td style="border-top: none"></td>
+					<td colspan="3" style="border-top-style: dotted">{{ area_access_record.area.name }} access</td>
+					<td style="border-top-style: dotted">{{ area_access_record.start }}</td>
+					<td style="border-top-style: dotted">{{ area_access_record.end|default_if_none:'' }}</td>
+					<td style="border-top-style: dotted">{% if area_access_record.end is not None %}{{ area_access_record.start|timesince:area_access_record.end }}{% endif %}</td>
+					<td style="border-top: none"></td>
+					<td style="border-top: none"></td>
+				</tr>
+			{%  endfor %}
+		{% endfor %}
+		</tbody>
+	</table>
+	<br>
 	<h3>Usage Events</h3>
 	<table class="table">
 		<thead>
@@ -84,7 +127,7 @@
 		</thead>
 		<tbody>
 		{% for u in usage %}
-			<tr {% if u.validated %}class="success-highlight"{% elif u.id in contest_list %}class="warning-highlight"{% endif %} id="usage_event_row_{{ forloop.counter }}">
+			<tr {% if u.validated %}class="success-highlight"{% elif u.id in ue_contest_list %}class="warning-highlight"{% endif %} id="usage_event_row_{{ forloop.counter }}">
 				<td>{{ u.id }}</td>
 				<td>{{ u.operator }}</td>
 				<td>{{ u.user }}</td>
@@ -93,7 +136,7 @@
 				<td>{% if u.end is None %}In progress{% else %}{{ u.end|date:"l, F d, Y" }} @ {{ u.end|time:"h:i A" }}{% endif %}</td>
 				<td>{% if u.duration != 'In progress' %}{{ u.start|timesince:u.end }}{% endif %}</td>
 				<td>{{ u.tool }}</td>
-				<td>{% if not u.validated and u.id not in contest_list %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_usage_event' u.id %}', '#usage_event_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
+				<td>{% if not u.validated and u.id not in ue_contest_list %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_usage_event' u.id %}', '#usage_event_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
 				<td>{% if not u.validated %}<button class="btn btn-warning" onclick="window.location.href='{% url 'contest_usage_event' u.id %}'">Contest</button>{% endif %}</td>
 			</tr>
 		{% endfor %}

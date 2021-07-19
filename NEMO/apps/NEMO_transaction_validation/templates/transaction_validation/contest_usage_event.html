@@ -13,14 +13,14 @@
 		each of your reasons. Once this form is submitted, the Usage Event will be placed in <span class="warning-highlight">contested status</span> until an
 		administrator can review the record and address it as needed.</p>
 
-	<form id="contest_form" class="form-horizontal needs-validation" action="{% url 'submit_contest' usage_event.id %}" method="post">
+	<form id="contest_form" class="form-horizontal needs-validation" action="{% url 'submit_ue_contest' transaction.id %}" method="post">
 		{% csrf_token %}
 		<div class="form-group">
 			<label for="operator" class="col-md-2 control-label"><b>Operator</b></label>
 			<div class="col-md-10">
 				<select id="operator" name="operator_id" class="form-control" onchange="enableSubmission()" disabled>
 					{% for u in user_list %}
-					<option {% if usage_event.operator.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
+					<option {% if transaction.operator.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
 					{% endfor %}
 				</select>
 			</div>
@@ -30,7 +30,7 @@
 			<div class="col-md-10">
 				<select id="customer" name="customer_id" class="form-control" onchange="enableSubmission()">
 					{% for u in user_list %}
-					<option {% if usage_event.user.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
+					<option {% if transaction.user.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
 					{% endfor %}
 				</select>
 			</div>
@@ -40,7 +40,7 @@
 			<div class="col-md-10">
 				<select id="project" name="project_id" class="form-control" onchange="enableSubmission()">
 					{% for p in project_list %}
-					<option {% if usage_event.project.id == p.id %}selected {% endif %} value="{{ p.id }}">{{ p }}</option>
+					<option {% if transaction.project.id == p.id %}selected {% endif %} value="{{ p.id }}">{{ p }}</option>
 					{% endfor %}
 				</select>
 			</div>
@@ -48,13 +48,13 @@
 		<div class="form-group">
 			<label for="start" class="col-md-2 control-label"><b>Start</b></label>
 			<div class="col-md-4">
-				<input type="text" id="start" name="start" class="form-control text-left" value="{{ start|date:'l, F d, Y' }} @ {{ start|time:'h:i A' }}" onchange="enableSubmission()">
+				<input type="text" id="start" name="start" class="form-control text-left" value="{{ start|date:'l, F d, Y' }} @ {{ start|time:'h:i A' }}">
 			</div>
 		</div>
 		<div class="form-group">
 			<label for="end" class="col-md-2 control-label"><b>End</b></label>
 			<div class="col-md-4">
-				<input type="text" id="end" name="end" class="form-control text-left" value="{{ end|date:'l, F d, Y' }} @ {{ end|time:'h:i A' }}" onchange="enableSubmission()">
+				<input type="text" id="end" name="end" class="form-control text-left" value="{{ end|date:'l, F d, Y' }} @ {{ end|time:'h:i A' }}">
 			</div>
 		</div>
 		<div class="form-group">
@@ -62,7 +62,7 @@
 			<div class="col-md-10">
 				<select id="tool" name="tool_id" class="form-control" onchange="enableSubmission()">
 					{% for t in tool_list %}
-					<option {% if usage_event.tool.id == t.id %}selected {% endif %} value="{{ t.id }}">{{ t }}</option>
+					<option {% if transaction.tool.id == t.id %}selected {% endif %} value="{{ t.id }}">{{ t }}</option>
 					{% endfor %}
 				</select>
 			</div>
@@ -121,13 +121,15 @@
 		let start_date_jq = $('#start');
 		let end_date_jq = $('#end');
 		start_date_jq.datetimepicker({
-			format: 'dddd, MMMM DD, YYYY @ h:mm A'
+			format: 'dddd, MMMM DD, YYYY @ h:mm A',
+			defaultDate: start_date_jq.val()
 		}).on('dp.change', function(e) {
 			enableSubmission()
 		});
 		end_date_jq.datetimepicker({
 			format: 'dddd, MMMM DD, YYYY @ h:mm A',
-			maxDate: new Date()
+			defaultDate: end_date_jq.val(),
+			maxDate: 'now'
 		}).on('dp.change', function(e) {
 			enableSubmission()
 		});

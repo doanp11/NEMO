@@ -1,11 +1,11 @@
 from django.contrib import admin
 from django.contrib.admin import register
 
-from NEMO.apps.NEMO_transaction_validation.models import Contest
+from NEMO.apps.NEMO_transaction_validation.models import ContestUsageEvent, ContestStaffCharge
 
 # Register your models here.
-@register(Contest)
-class ContestAdmin(admin.ModelAdmin):
+@register(ContestUsageEvent)
+class ContestUsageEventAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "transaction",
@@ -32,9 +32,9 @@ class ContestAdmin(admin.ModelAdmin):
         usage_event = obj.transaction
         if obj.admin_approved:
             # Check and create a Contest model if original Usage Event has not been saved as a Contest model
-            orig_ue_created = Contest.objects.filter(transaction=usage_event.id, reason='original').exists()
+            orig_ue_created = ContestUsageEvent.objects.filter(transaction=usage_event.id, reason='original').exists()
             if not orig_ue_created:
-                orig_usage_event = Contest()
+                orig_usage_event = ContestUsageEvent()
                 orig_usage_event.transaction = usage_event
                 orig_usage_event.user = usage_event.user
                 orig_usage_event.operator = usage_event.operator
@@ -59,3 +59,23 @@ class ContestAdmin(admin.ModelAdmin):
         if contest_reason == "tool":
             usage_event.tool = obj.tool
         usage_event.save()
+
+@register(ContestStaffCharge)
+class ContestStaffChargeAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "transaction",
+        "reason",
+        "user",
+        "operator",
+        "project",
+        "start",
+        "end",
+    )
+    list_filter = (
+        "admin_approved",
+        "reason",
+        "operator",
+        "project",
+    )
+    date_hierarchy = "start"
