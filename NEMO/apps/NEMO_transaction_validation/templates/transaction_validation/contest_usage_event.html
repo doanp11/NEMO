@@ -48,13 +48,13 @@
 		<div class="form-group">
 			<label for="start" class="col-md-2 control-label"><b>Start</b></label>
 			<div class="col-md-4">
-				<input type="text" id="start" name="start" class="form-control text-left" value="{{ start|date:'l, F d, Y' }} @ {{ start|time:'h:i A' }}">
+				<input type="text" id="start" name="start" class="form-control text-left" value="{{ start|date:'l, F d, Y' }} @ {{ start|time:'g:i A' }}">
 			</div>
 		</div>
 		<div class="form-group">
 			<label for="end" class="col-md-2 control-label"><b>End</b></label>
 			<div class="col-md-4">
-				<input type="text" id="end" name="end" class="form-control text-left" value="{{ end|date:'l, F d, Y' }} @ {{ end|time:'h:i A' }}">
+				<input type="text" id="end" name="end" class="form-control text-left" value="{{ end|date:'l, F d, Y' }} @ {{ end|time:'g:i A' }}">
 			</div>
 		</div>
 		<div class="form-group">

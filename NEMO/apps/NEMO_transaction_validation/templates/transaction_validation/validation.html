@@ -88,8 +88,8 @@
 				<td>{{ c.staff_member }}</td>
 				<td>{{ c.customer }}</td>
 				<td>{{ c.project }}</td>
-				<td>{{ c.start }}</td>
-				<td>{% if c.end is None %}In progress{% else %}{{ c.end }}{% endif %}</td>
+				<td>{{ c.start|date:"l, F d, Y" }} @ {{ c.start|time:"g:i A" }}</td>
+				<td>{% if c.end is None %}In progress{% else %}{{ c.end|date:"l, F d, Y" }} @ {{ c.end|time:"g:i A" }}{% endif %}</td>
 				<td>{% if c.end is not None %}{{ c.start|timesince:c.end }}{% endif %}</td>
 				<td>{% if not c.validated %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_staff_charge' c.id %}', this, '#staff_charge_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
 				<td>{% if not c.validated %}<button class="btn btn-warning" onclick="window.location.href='{% url 'contest_staff_charge' c.id %}'">Contest</button>{% endif %}</td>
@@ -98,8 +98,8 @@
 				<tr {% if c.validated %}class="success-highlight"{% elif c.id in sc_contest_list %}class="warning-highlight"{% endif %} style="font-size: smaller">
 					<td style="border-top: none"></td>
 					<td colspan="3" style="border-top-style: dotted">{{ area_access_record.area.name }} access</td>
-					<td style="border-top-style: dotted">{{ area_access_record.start }}</td>
-					<td style="border-top-style: dotted">{{ area_access_record.end|default_if_none:'' }}</td>
+					<td style="border-top-style: dotted">{{ area_access_record.start|date:"l, F d, Y" }} @ {{ area_access_record.start|time:"g:i A" }}</td>
+					<td style="border-top-style: dotted">{% if area_access_record.end is None %}In progress{% else %}{{ area_access_record.end|date:"l, F d, Y" }} @ {{ area_access_record.end|time:"g:i A" }}{% endif %}</td>
 					<td style="border-top-style: dotted">{% if area_access_record.end is not None %}{{ area_access_record.start|timesince:area_access_record.end }}{% endif %}</td>
 					<td style="border-top: none"></td>
 					<td style="border-top: none"></td>
@@ -132,8 +132,8 @@
 				<td>{{ u.operator }}</td>
 				<td>{{ u.user }}</td>
 				<td>{{ u.project }}</td>
-				<td>{{ u.start|date:"l, F d, Y" }} @ {{ u.start|time:"h:i A" }}</td>
-				<td>{% if u.end is None %}In progress{% else %}{{ u.end|date:"l, F d, Y" }} @ {{ u.end|time:"h:i A" }}{% endif %}</td>
+				<td>{{ u.start|date:"l, F d, Y" }} @ {{ u.start|time:"g:i A" }}</td>
+				<td>{% if u.end is None %}In progress{% else %}{{ u.end|date:"l, F d, Y" }} @ {{ u.end|time:"g:i A" }}{% endif %}</td>
 				<td>{% if u.duration != 'In progress' %}{{ u.start|timesince:u.end }}{% endif %}</td>
 				<td>{{ u.tool }}</td>
 				<td>{% if not u.validated and u.id not in ue_contest_list %}<button class="btn btn-success" onclick="validate_charge('{% url 'validate_usage_event' u.id %}', '#usage_event_row_{{ forloop.counter }}')">Validate</button>{% endif %}</td>
