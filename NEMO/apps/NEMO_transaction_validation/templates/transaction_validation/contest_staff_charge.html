@@ -98,7 +98,10 @@
 							<input type="text" id="end_{{ area_access_record.id }}" name="end_{{ area_access_record.id }}" class="form-control text-left" value="{{ area_access_record.end|date:'l, F d, Y' }} @ {{ area_access_record.end|time:'g:i A' }}">
 						</div>
 					</td>
-					<td><input type="checkbox"></td>
+					<td>
+						<input type="checkbox" onclick="resetAreaAccessRecordData(this, {{ area_access_record.id }}, '{{ area_access_record.area.id }}',
+						'{{ area_access_record.start|date:'l, F d, Y' }} @ {{ area_access_record.start|time:'g:i A' }}', '{{ area_access_record.end|date:'l, F d, Y' }} @ {{ area_access_record.end|time:'g:i A' }}')">
+					</td>
 				</tr>
 				{% endfor %}
 				</tbody>
@@ -131,6 +134,31 @@
 	</form>
 
 	<script>
+		function resetAreaAccessRecordData(checkbox, aar_id, default_area_id, default_start, default_end)
+		{
+			let area_jq = $( "#area_id_" + aar_id );
+			let start_jq = $( "#start_" + aar_id );
+			let end_jq = $( "#end_" + aar_id );
+
+			if( $( checkbox ).is(":checked") )
+			{
+				area_jq.val( default_area_id ).change();
+				area_jq.prop( 'disabled', true );
+
+				start_jq.val( default_start );
+				start_jq.prop( 'disabled', true );
+
+				end_jq.val( default_end );
+				end_jq.prop( 'disabled', true );
+			}
+			else
+			{
+				area_jq.prop( 'disabled', false );
+				start_jq.prop( 'disabled', false );
+				end_jq.prop( 'disabled', false );
+			}
+		}
+
 		function enableSubmission() {
 			$( '#submit_contest' ).prop( 'disabled', false );
 		}
