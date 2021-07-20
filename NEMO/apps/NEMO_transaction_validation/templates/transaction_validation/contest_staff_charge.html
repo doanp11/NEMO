@@ -188,7 +188,8 @@
 		start_date_jq.each( function() {
 			$( this ).datetimepicker({
 				format: 'dddd, MMMM DD, YYYY @ h:mm A',
-				defaultDate: $( this ).val()
+				defaultDate: $( this ).val(),
+				maxDate: 'now'
 			}).on('dp.change', function(e) {
 				enableSubmission()
 			});
