@@ -13,12 +13,12 @@
 		each of your reasons. Once this form is submitted, the Staff Charge will be placed in <span class="warning-highlight">contested status</span> until an
 		administrator can review the record and address it as needed.</p>
 
-	<form id="contest_form" class="form-horizontal needs-validation" action="{% url 'submit_sc_contest' transaction.id %}" method="post">
+	<form id="contest_form" class="form-horizontal needs-validation">
 		{% csrf_token %}
 		<div class="form-group">
-			<label for="operator" class="col-md-2 control-label"><b>Operator</b></label>
+			<label for="staff_member" class="col-md-2 control-label"><b>Staff Member</b></label>
 			<div class="col-md-10">
-				<select id="operator" name="operator_id" class="form-control" onchange="enableSubmission()" disabled>
+				<select id="staff_member" name="staff_member_id" class="form-control" onchange="enableSubmission()" disabled>
 					{% for u in user_list %}
 					<option {% if transaction.staff_member.id == u.id %}selected {% endif %} value="{{ u.id }}">{{ u }}</option>
 					{% endfor %}
@@ -58,33 +58,27 @@
 			</div>
 		</div>
 		<div style="border-top: 1px solid #ddd">
-			<h3>Area Access Records <button class="btn btn-success">Add</button></h3>
+			<h3>Area Access Records</h3>
 			<br>
 		</div>
 		<div>
-			<!--label class="col-md-3"><b>Area</b></label>
-			<label class="col-md-4"><b>Start</b></label>
-			<label class="col-md-4"><b>End</b></label>
-			<label class="col-md-1"><b>Remove</b></label>
-		</div>
-		<div class="form-group"-->
-
 			<table class="table">
 				<thead>
 				<tr>
+					<th>ID</th>
 					<th>Area</th>
 					<th>Start</th>
 					<th>End</th>
-					<th>Remove</th>
 				</tr>
 				</thead>
 				<tbody>
 				{% for area_access_record in transaction.areaaccessrecord_set.all %}
 				<tr style="border-top: 2px solid #ddd" id="area_access_record_{{ area_access_record.id }}">
+					<td id="aar_id">{{ area_access_record }}</td>
 					<td>
-						<select id="area_id_{{ area_access_record.id }}" name="area_id" class="form-control" onchange="enableSubmission()">
+						<select id="area_id_{{ area_access_record.id }}" name="area_id_{{ area_access_record.id }}" class="form-control" onchange="enableSubmission()">
 							{% for a in area_list %}
-							<option {% if area == area_access_record.area %}selected {% endif %} value="{{ area_access_record.area.id }}">{{ a }}</option>
+							<option {% if a == area_access_record.area %}selected {% endif %} value="{{ a.id }}">{{ a }}</option>
 							{% endfor %}
 						</select>
 					</td>
@@ -98,10 +92,6 @@
 							<input type="text" id="end_{{ area_access_record.id }}" name="end_{{ area_access_record.id }}" class="form-control text-left" value="{{ area_access_record.end|date:'l, F d, Y' }} @ {{ area_access_record.end|time:'g:i A' }}">
 						</div>
 					</td>
-					<td>
-						<input type="checkbox" onclick="resetAreaAccessRecordData(this, {{ area_access_record.id }}, '{{ area_access_record.area.id }}',
-						'{{ area_access_record.start|date:'l, F d, Y' }} @ {{ area_access_record.start|time:'g:i A' }}', '{{ area_access_record.end|date:'l, F d, Y' }} @ {{ area_access_record.end|time:'g:i A' }}')">
-					</td>
 				</tr>
 				{% endfor %}
 				</tbody>
@@ -113,11 +103,11 @@
 			<div class="col-md-10">
 				<select id="contest_reason" name="contest_reason" class="form-control" required>
 					<option selected disabled value="">Please select a contest reason</option>
-					<!--option value="operator">Incorrect operator selection</option-->
+					<!--option value="staff_member">Incorrect staff member selection</option-->
 					<option value="customer">Incorrect customer selection</option>
 					<option value="project">Incorrect project selection</option>
 					<option value="datetime">Incorrect date/time selection</option>
-					<option value="area">Incorrect area(s) selection</option>
+					<option value="area">Incorrect area access record(s)</option>
 				</select>
 			</div>
 		</div>
@@ -129,37 +119,48 @@
 		</div>
 		<div class="form-group">
 			<div class="col-md-2"></div>
-			<div class="col-md-10"><input type="submit" id="submit_contest" class="btn btn-default btn-md" value="Submit Contest" disabled></div>
+			<div class="col-md-10">
+				<button id="submit_contest_start_another" class="btn btn-default btn-md" onclick="submitContest('{% url 'contest_staff_charge' transaction.id %}')" disabled>Submit Contest and Start Another</button>
+				<button id="submit_contest" class="btn btn-default btn-md" onclick="submitContest('{% url 'transaction_validation' %}')" disabled>Submit Contest</button>
+			</div>
 		</div>
 	</form>
 
 	<script>
-		function resetAreaAccessRecordData(checkbox, aar_id, default_area_id, default_start, default_end)
-		{
-			let area_jq = $( "#area_id_" + aar_id );
-			let start_jq = $( "#start_" + aar_id );
-			let end_jq = $( "#end_" + aar_id );
+		function submitContest(url) {
+			let form = $( '#contest_form' )[0];
 
-			if( $( checkbox ).is(":checked") )
+			if( form.checkValidity() )
 			{
-				area_jq.val( default_area_id ).change();
-				area_jq.prop( 'disabled', true );
-
-				start_jq.val( default_start );
-				start_jq.prop( 'disabled', true );
-
-				end_jq.val( default_end );
-				end_jq.prop( 'disabled', true );
+				let sc_failure_dialog = ajax_failure_callback("Unable to submit contest");
+				ajax_post("{% url 'submit_sc_contest' transaction.id %}", serialize('#contest_form'), function() { window.location.assign(url) }, sc_failure_dialog);
 			}
 			else
 			{
-				area_jq.prop( 'disabled', false );
-				start_jq.prop( 'disabled', false );
-				end_jq.prop( 'disabled', false );
+				form.reportValidity();
 			}
 		}
 
+		function removeNewRow(new_aar_row_id)
+		{
+			$( "#area_access_record_new_" + new_aar_row_id ).remove();
+		}
+
+		function addNewRow()
+		{
+			var new_aar_counter = 0;
+			let new_aar_row = "<tr style='border-top: 2px solid #ddd' id='area_access_record_new_" + ++new_aar_counter + "'>";
+			new_aar_row += "<td><div style='width: 100%; height: 34px; padding: 7px 13px; text-indent: 3px'>" + $( '#new_area_id option:selected' ).text() + "</div></td>";
+			new_aar_row += "<td><div style='width: 100%; height: 34px; padding: 7px 13px; text-indent: 0px'>" + $( '#start_new' ).val() + "</div></td>";
+			new_aar_row += "<td><div style='width: 100%; height: 34px; padding: 7px 13px; text-indent: 0px'>" + $( '#end_new' ).val() + "</div></td>";
+			new_aar_row += "<td><button type='button' class='close' style='float: left; margin-top: 4px' onclick='removeNewRow(" + new_aar_counter + ")'>&times;</button></td>"
+			new_aar_row += "</tr>"
+
+			$( "tr[id^='area_access_record_']" ).last().after(new_aar_row);
+		}
+
 		function enableSubmission() {
+			$( '#submit_contest_start_another' ).prop( 'disabled', false );
 			$( '#submit_contest' ).prop( 'disabled', false );
 		}
 

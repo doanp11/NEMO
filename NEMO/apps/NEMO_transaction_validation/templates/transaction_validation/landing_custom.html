@@ -36,7 +36,7 @@
 				<h3>Admin Approval Needed</h3>
 				<a href="{% url 'review_contests' %}" style="text-decoration: none">
 					<div class="alert alert-danger">
-						There are contests that require admin approval. {% if user.is_superuser %}Please review them now.{% endif %}
+						There are contests that require admin approval. {% if user.is_superuser %}Please review them now by clicking here.{% endif %}
 					</div>
 				</a>
 			</div>

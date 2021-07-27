@@ -1,5 +1,6 @@
 from django.db import models
-from NEMO.models import Tool, Project, User, UsageEvent, StaffCharge
+from NEMO.models import Tool, Project, User, UsageEvent, StaffCharge, AreaAccessRecord, Area
+from mptt.fields import TreeForeignKey
 
 # Create your models here.
 class ContestUsageEvent(models.Model):
@@ -28,14 +29,27 @@ class ContestUsageEvent(models.Model):
     def __str__(self):
         return str(self.id)
 
+class ContestAreaAccessRecord(models.Model):
+    transaction = models.ForeignKey(AreaAccessRecord, help_text="Area Access Record to be contested", on_delete=models.CASCADE)
+    area = TreeForeignKey(Area, help_text="The area accessed during this record", on_delete=models.CASCADE)
+    start = models.DateTimeField()
+    end = models.DateTimeField(null=True, blank=True)
+    admin_approved = models.BooleanField(default=False, help_text="<b>Check this to approve the contest and to apply the changes when saving this form</b>")
+
+    class Meta:
+        ordering = ['transaction']
+
+    def __str__(self):
+        return str(self.id)
+
 class ContestStaffCharge(models.Model):
     CONTEST_REASONS = [
-        ('operator', 'Incorrect operator selection'),
-        ('customer', 'Incorrect customer selection'),
-        ('project',  'Incorrect project selection'),
-        ('datetime', 'Incorrect date/time selection'),
-        ('area',     'Incorrect area selection(s)'),
-        ('original', 'Original usage event'),
+        ('operator',    'Incorrect operator selection'),
+        ('customer',    'Incorrect customer selection'),
+        ('project',     'Incorrect project selection'),
+        ('datetime',    'Incorrect date/time selection'),
+        ('area',        'Incorrect area access record(s)'),
+        ('original',    'Original staff charge'),
     ]
     transaction = models.ForeignKey(StaffCharge, help_text="Staff Charge to be contested", on_delete=models.CASCADE)
     user = models.ForeignKey(User, help_text="Customer that the staff performed the task on behalf of", related_name="contest_sc_customer", on_delete=models.CASCADE)
@@ -43,6 +57,7 @@ class ContestStaffCharge(models.Model):
     project = models.ForeignKey(Project, help_text="Transaction will be billed to this project", on_delete=models.CASCADE)
     start = models.DateTimeField()
     end = models.DateTimeField(null=True, blank=True)
+    area_access_records = models.ManyToManyField(ContestAreaAccessRecord, help_text="Area Access Record contests")
     reason = models.TextField(choices=CONTEST_REASONS, help_text="Provide the reason for submitting this transaction contest")
     description = models.TextField(blank=True, null=True, help_text="Provide a detailed reason for submitting this transaction contest")
     admin_approved = models.BooleanField(default=False, help_text="<b>Check this to approve the contest and to apply the changes when saving this form</b>")

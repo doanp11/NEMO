@@ -13,7 +13,7 @@
 		each of your reasons. Once this form is submitted, the Usage Event will be placed in <span class="warning-highlight">contested status</span> until an
 		administrator can review the record and address it as needed.</p>
 
-	<form id="contest_form" class="form-horizontal needs-validation" action="{% url 'submit_ue_contest' transaction.id %}" method="post">
+	<form id="contest_form" class="form-horizontal needs-validation">
 		{% csrf_token %}
 		<div class="form-group">
 			<label for="operator" class="col-md-2 control-label"><b>Operator</b></label>
@@ -89,12 +89,21 @@
 		</div>
 		<div class="form-group">
 			<div class="col-md-2"></div>
-			<div class="col-md-10"><input type="submit" id="submit_contest" class="btn btn-default btn-md" value="Submit Contest" disabled></div>
+			<div class="col-md-10">
+				<button id="submit_contest_start_another" class="btn btn-default btn-md" onclick="submitContest('{% url 'contest_usage_event' transaction.id %}')" disabled>Submit Contest and Start Another</button>
+				<button id="submit_contest" class="btn btn-default btn-md" onclick="submitContest('{% url 'transaction_validation' %}')" disabled>Submit Contest</button>
+			</div>
 		</div>
 	</form>
 
 	<script>
+		function submitContest(url) {
+			let failure_dialog = ajax_failure_callback("Unable to submit contest");
+			ajax_post("{% url 'submit_ue_contest' transaction.id %}", serialize('#contest_form'), function() { window.location.assign(url) }, failure_dialog);
+		}
+
 		function enableSubmission() {
+			$( '#submit_contest_start_another' ).prop( 'disabled', false );
 			$( '#submit_contest' ).prop( 'disabled', false );
 		}
 

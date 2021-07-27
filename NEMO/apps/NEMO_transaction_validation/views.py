@@ -9,8 +9,8 @@ from django.shortcuts import render, get_object_or_404, reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from NEMO.models import UsageEvent, StaffCharge, User, Project, Tool, LandingPageChoice, Reservation, Alert, Resource, Area
-from NEMO.apps.NEMO_transaction_validation.models import ContestUsageEvent, ContestStaffCharge
+from NEMO.models import UsageEvent, StaffCharge, User, Project, Tool, LandingPageChoice, Reservation, Alert, Resource, Area, AreaAccessRecord
+from NEMO.apps.NEMO_transaction_validation.models import ContestUsageEvent, ContestStaffCharge, ContestAreaAccessRecord
 from NEMO.utilities import month_list, get_month_timeframe, parse_start_and_end_date, BasicDisplayTable
 from NEMO.views.alerts import delete_expired_alerts
 from NEMO.views.area_access import able_to_self_log_in_to_area, able_to_self_log_out_of_area
@@ -170,17 +170,25 @@ def contest_transaction(request, transaction_id, transaction_type='usage_event')
 @staff_member_required(login_url=None)
 @require_POST
 def submit_contest(request, transaction_id, transaction_type='usage_event'):
-	if transaction_type is 'staff_charge':
-		new_contest = ContestStaffCharge()
-		new_contest.transaction = get_object_or_404(StaffCharge, id=transaction_id)
+	# Staff Charge contest submitted
+	if transaction_type == 'staff_charge':
+		try:
+			new_contest = ContestStaffCharge()
+			new_contest.transaction = get_object_or_404(StaffCharge, id=transaction_id)
+		except Exception as e:
+			return HttpResponseBadRequest(str(e))
+
+	# Usage Event contest submitted
 	else:
 		new_contest = ContestUsageEvent()
-		new_contest.transaction = get_object_or_404(UsageEvent, id=transaction_id)
-		new_contest.tool = get_object_or_404(Tool, id=request.POST['tool_id'])
+		try:
+			new_contest.transaction = get_object_or_404(UsageEvent, id=transaction_id)
+			new_contest.tool = get_object_or_404(Tool, id=request.POST['tool_id'])
+		except Exception as e:
+			return HttpResponseBadRequest(str(e))
 
 	new_contest.operator = request.user
 	new_contest.admin_approved = False
-
 	try:
 		new_contest.user = get_object_or_404(User, id=request.POST['customer_id'])
 		new_contest.project = get_object_or_404(Project, id=request.POST['project_id'])
@@ -192,23 +200,69 @@ def submit_contest(request, transaction_id, transaction_type='usage_event'):
 		new_contest.description = request.POST['contest_description']
 	except Exception as e:
 		return HttpResponseBadRequest(str(e))
-
 	new_contest.save()
-	return HttpResponseRedirect(reverse('transaction_validation'))
+
+	# If submitting a Staff Charge contest, check to see if Area Access Record contests are being submitted
+	if transaction_type == 'staff_charge' and new_contest.reason == 'area':
+		for k in request.POST:
+			if k.startswith('area_id_'):
+				aar_id = k.split('area_id_')[1]
+				new_aar_contest = ContestAreaAccessRecord()
+				try:
+					new_aar_contest.transaction = get_object_or_404(AreaAccessRecord, id=aar_id)
+					new_aar_contest.area = get_object_or_404(Area, id=request.POST["area_id_" + aar_id])
+				except Exception as e:
+					return HttpResponseBadRequest(str(e))
+				new_aar_contest.start = datetime.strptime(request.POST['start_' + aar_id], "%A, %B %d, %Y @ %I:%M %p")
+				new_aar_contest.end = datetime.strptime(request.POST['end_' + aar_id], "%A, %B %d, %Y @ %I:%M %p")
+				new_aar_contest.admin_approved = False
+				new_aar_contest.save()
+				new_contest.area_access_records.add(new_aar_contest)
+	return HttpResponse()
 
 @staff_member_required(login_url=None)
 @require_GET
-def review_contests(request):
-	user: User = request.user
+def review_contests(request, transaction_id=0, transaction_type='usage_event'):
+	if transaction_id == 0:
+		# Determine Usage Events and Staff Charges with contest(s) submitted
+		ue_contests = ContestUsageEvent.objects.filter(admin_approved=False)
+		sc_contests = ContestStaffCharge.objects.filter(admin_approved=False)
 
-	dictionary = {
-		"contests": ContestUsageEvent.objects.exclude(transaction__validated=True).order_by('transaction__id')
-	}
-	return render(request, "transaction_validation/review_contests.html", dictionary)
+		ue_contest_list = set()
+		sc_contest_list = set()
+		for contest in ue_contests:
+			ue_contest_list.add(contest.transaction.id)
+		for contest in sc_contests:
+			sc_contest_list.add(contest.transaction.id)
+
+		dictionary = {
+			"ue_contest_list": ue_contest_list,
+			"sc_contest_list": sc_contest_list,
+			"ue_contests": ContestUsageEvent.objects.exclude(transaction__validated=True).order_by('transaction__id'),
+			"sc_contests": ContestStaffCharge.objects.exclude(transaction__validated=True).order_by('transaction__id')
+		}
+		return render(request, "transaction_validation/review_contests.html", dictionary)
+	elif transaction_type == 'staff_charge':
+		dictionary = {
+			"staff_charge": get_object_or_404(StaffCharge, id=transaction_id),
+			"contests": ContestStaffCharge.objects.filter(transaction=transaction_id)
+		}
+		return render(request, "transaction_validation/review_sc_contests.html", dictionary)
+	elif transaction_type == 'area_access_record':
+		dictionary = {
+			"area_access_record": get_object_or_404(AreaAccessRecord, id=transaction_id)
+		}
+		return render(request, "transaction_validation/review_aar_contests.html", dictionary)
+	else:
+		dictionary = {
+			"usage_event": get_object_or_404(UsageEvent, id=transaction_id),
+			"contests": ContestUsageEvent.objects.filter(transaction=transaction_id)
+		}
+		return render(request, "transaction_validation/review_ue_contests.html", dictionary)
 
 @staff_member_required(login_url=None)
 @require_POST
-def approve_contest(request, contest_id):
+def approve_ue_contest(request, contest_id):
 	user: User = request.user
 
 	# Check if user has admin authorizations
@@ -254,6 +308,59 @@ def approve_contest(request, contest_id):
 
 	return HttpResponseRedirect(reverse('review_contests'))
 
+@staff_member_required(login_url=None)
+@require_POST
+def approve_sc_contest(request, contest_id):
+	user: User = request.user
+
+	# Check if user has admin authorizations
+	if not user.is_superuser:
+		return HttpResponseBadRequest("You are not authorized to approve contests.")
+
+	# Get models
+	contest = get_object_or_404(ContestStaffCharge, id=contest_id)
+	staff_charge = get_object_or_404(StaffCharge, id=contest.transaction.id)
+
+	# Check and create a Contest model if original Staff Charge has not been saved as a Contest model
+	orig_sc_created = ContestStaffCharge.objects.filter(transaction=staff_charge.id, reason='original').exists()
+	if not orig_sc_created:
+		orig_sc_created = ContestStaffCharge()
+		orig_sc_created.transaction = staff_charge
+		orig_sc_created.user = staff_charge.customer
+		orig_sc_created.operator = staff_charge.staff_member
+		orig_sc_created.project = staff_charge.project
+		orig_sc_created.start = staff_charge.start
+		orig_sc_created.end = staff_charge.end
+		orig_sc_created.reason = 'original'
+		orig_sc_created.description = 'Original Transaction'
+		orig_sc_created.admin_approved = True
+		orig_sc_created.save()
+
+	# Update Contest model
+	contest.admin_approved = True
+	contest.save()
+
+	# Update Usage Event model
+	contest_reason = contest.reason
+	if contest_reason == "customer":
+		staff_charge.customer = contest.user
+		staff_charge_aars = AreaAccessRecord.objects.filter(staff_charge=staff_charge)
+		for aar in staff_charge_aars:
+			aar.customer = contest.user
+			aar.save()
+	if contest_reason == "project":
+		staff_charge.project = contest.project
+		staff_charge_aars = AreaAccessRecord.objects.filter(staff_charge=staff_charge)
+		for aar in staff_charge_aars:
+			aar.project = contest.project
+			aar.save()
+	if contest_reason == "datetime":
+		staff_charge.start = contest.start
+		staff_charge.end = contest.end
+	staff_charge.save()
+
+	return HttpResponseRedirect(reverse('review_contests'))
+
 @login_required
 @require_GET
 def landing(request):
@@ -288,8 +395,8 @@ def landing(request):
 		)
 	upcoming_reservations = upcoming_reservations.order_by("start")[:3]
 	dictionary = {
-		"validation_required": UsageEvent.objects.filter(operator=user.id, validated=False).exclude(user=user.id).exists(),
-		"approval_required": ContestUsageEvent.objects.filter(admin_approved=False).exists(),
+		"validation_required": UsageEvent.objects.filter(operator=user.id, validated=False).exclude(user=user.id).exists() or StaffCharge.objects.filter(staff_member=user.id, validated=False).exclude(customer=user.id).exists(),
+		"approval_required": ContestUsageEvent.objects.filter(admin_approved=False).exists() or ContestStaffCharge.objects.filter(admin_approved=False).exists(),
 		"now": timezone.now(),
 		"alerts": Alert.objects.filter(
 			Q(user=None) | Q(user=user), debut_time__lte=timezone.now(), expired=False, deleted=False
