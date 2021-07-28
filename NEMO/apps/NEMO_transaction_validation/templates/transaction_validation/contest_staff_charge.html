@@ -120,8 +120,8 @@
 		<div class="form-group">
 			<div class="col-md-2"></div>
 			<div class="col-md-10">
-				<button id="submit_contest_start_another" class="btn btn-default btn-md" onclick="submitContest('{% url 'contest_staff_charge' transaction.id %}')" disabled>Submit Contest and Start Another</button>
-				<button id="submit_contest" class="btn btn-default btn-md" onclick="submitContest('{% url 'transaction_validation' %}')" disabled>Submit Contest</button>
+				<button type="button" id="submit_contest_start_another" class="btn btn-default btn-md" onclick="submitContest('{% url 'contest_staff_charge' transaction.id %}')" disabled>Submit Contest and Start Another</button>
+				<button type="button" id="submit_contest" class="btn btn-default btn-md" onclick="submitContest('{% url 'transaction_validation' %}')" disabled>Submit Contest</button>
 			</div>
 		</div>
 	</form>
@@ -160,29 +160,8 @@
 		}
 
 		function enableSubmission() {
-			$( '#submit_contest_start_another' ).prop( 'disabled', false );
-			$( '#submit_contest' ).prop( 'disabled', false );
+			$( "button[id^='submit_contest']" ).prop( 'disabled', false );
 		}
-
-		// Disable form submissions if there are invalid fields
-		(function () {
-			'use strict'
-
-			var forms = document.querySelectorAll('.needs-validation')
-
-			// Loop over them and prevent submission
-			Array.prototype.slice.call(forms)
-				.forEach(function (form) {
-					form.addEventListener('submit', function (event) {
-						if (!form.checkValidity()) {
-							event.preventDefault()
-							event.stopPropagation()
-						}
-
-						form.classList.add('was-validated')
-					}, false)
-				})
-		})()
 
 		let start_date_jq = $("input[id^='start']");
 		let end_date_jq = $("input[id^='end']");

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import pytz
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
@@ -186,20 +187,33 @@ def submit_contest(request, transaction_id, transaction_type='usage_event'):
 			new_contest.tool = get_object_or_404(Tool, id=request.POST['tool_id'])
 		except Exception as e:
 			return HttpResponseBadRequest(str(e))
+		if request.POST['contest_reason'] == 'area' and new_contest.transaction.tool.id == new_contest.tool.id:
+			return HttpResponseBadRequest("No Usage Event Tool change submitted")
 
 	new_contest.operator = request.user
 	new_contest.admin_approved = False
+
+	new_contest.reason = request.POST['contest_reason']
+	new_contest.description = request.POST['contest_description']
+
 	try:
 		new_contest.user = get_object_or_404(User, id=request.POST['customer_id'])
 		new_contest.project = get_object_or_404(Project, id=request.POST['project_id'])
-
-		new_contest.start = datetime.strptime(request.POST['start'], "%A, %B %d, %Y @ %I:%M %p")
-		new_contest.end = datetime.strptime(request.POST['end'], "%A, %B %d, %Y @ %I:%M %p")
-
-		new_contest.reason = request.POST['contest_reason']
-		new_contest.description = request.POST['contest_description']
 	except Exception as e:
 		return HttpResponseBadRequest(str(e))
+	if new_contest.reason == 'customer' and new_contest.transaction.user.id == new_contest.user.id:
+		return HttpResponseBadRequest("No Usage Event Customer change submitted")
+	if new_contest.reason == 'project' and new_contest.transaction.project.id == new_contest.project.id:
+		return HttpResponseBadRequest("No Usage Event Project change submitted")
+
+	new_contest.start = datetime.strptime(request.POST['start'], "%A, %B %d, %Y @ %I:%M %p")
+	new_contest.end = datetime.strptime(request.POST['end'], "%A, %B %d, %Y @ %I:%M %p")
+	if new_contest.reason == 'datetime' \
+			and new_contest.transaction.start.astimezone(pytz.UTC).strftime("%A, %B %d, %Y @ %I:%M %p") == new_contest.start.astimezone(pytz.UTC).strftime("%A, %B %d, %Y @ %I:%M %p") \
+			and new_contest.transaction.end.astimezone(pytz.UTC).strftime("%A, %B %d, %Y @ %I:%M %p") == new_contest.end.astimezone(pytz.UTC).strftime("%A, %B %d, %Y @ %I:%M %p"):
+		return HttpResponseBadRequest("No Usage Event Start or End change submitted")
+
+	# Save contest
 	new_contest.save()
 
 	# If submitting a Staff Charge contest, check to see if Area Access Record contests are being submitted
@@ -212,12 +226,24 @@ def submit_contest(request, transaction_id, transaction_type='usage_event'):
 					new_aar_contest.transaction = get_object_or_404(AreaAccessRecord, id=aar_id)
 					new_aar_contest.area = get_object_or_404(Area, id=request.POST["area_id_" + aar_id])
 				except Exception as e:
+					new_contest.delete()
 					return HttpResponseBadRequest(str(e))
 				new_aar_contest.start = datetime.strptime(request.POST['start_' + aar_id], "%A, %B %d, %Y @ %I:%M %p")
 				new_aar_contest.end = datetime.strptime(request.POST['end_' + aar_id], "%A, %B %d, %Y @ %I:%M %p")
 				new_aar_contest.admin_approved = False
-				new_aar_contest.save()
-				new_contest.area_access_records.add(new_aar_contest)
+				# Determine if there are any differences between Area Access Record and the submitted contest
+				if new_aar_contest.transaction.area != new_aar_contest.area	\
+						or new_aar_contest.transaction.start.astimezone(pytz.UTC).strftime("%A, %B %d, %Y @ %I:%M %p") != new_aar_contest.start.astimezone(pytz.UTC).strftime("%A, %B %d, %Y @ %I:%M %p") \
+						or new_aar_contest.transaction.end.astimezone(pytz.UTC).strftime("%A, %B %d, %Y @ %I:%M %p") != new_aar_contest.end.astimezone(pytz.UTC).strftime("%A, %B %d, %Y @ %I:%M %p"):
+					new_aar_contest.save()
+					new_contest.area_access_records.add(new_aar_contest)
+
+		# In case Staff Charge contest is for contesting Area Access Records, determine if there are any changes submitted
+		if not new_contest.area_access_records.exists():
+			new_contest.delete()
+			return HttpResponseBadRequest("No Area Access Record changes submitted.")
+
+	# Contests created and saved with no errors
 	return HttpResponse()
 
 @staff_member_required(login_url=None)
@@ -340,7 +366,7 @@ def approve_sc_contest(request, contest_id):
 	contest.admin_approved = True
 	contest.save()
 
-	# Update Usage Event model
+	# Update Staff Charge model
 	contest_reason = contest.reason
 	if contest_reason == "customer":
 		staff_charge.customer = contest.user
