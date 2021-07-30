@@ -31,9 +31,10 @@ class ContestUsageEvent(models.Model):
 
 class ContestAreaAccessRecord(models.Model):
     transaction = models.ForeignKey(AreaAccessRecord, help_text="Area Access Record to be contested", on_delete=models.CASCADE)
-    area = TreeForeignKey(Area, help_text="The area accessed during this record", on_delete=models.CASCADE)
-    start = models.DateTimeField()
+    area = TreeForeignKey(Area, null=True, blank=True, help_text="The area accessed during this record", on_delete=models.CASCADE)
+    start = models.DateTimeField(null=True, blank=True)
     end = models.DateTimeField(null=True, blank=True)
+    original = models.BooleanField(default=False, help_text="Original Area Access Record data")
     admin_approved = models.BooleanField(default=False, help_text="<b>Check this to approve the contest and to apply the changes when saving this form</b>")
 
     class Meta:

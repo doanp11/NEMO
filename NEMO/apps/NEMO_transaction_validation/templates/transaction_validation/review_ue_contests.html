@@ -1,0 +1,45 @@
+<div class="modal-header">
+	<button type="button" class="close" data-dismiss="modal">&times;</button>
+	<h4 class="modal-title">Review Usage Event {{ usage_event }}</h4>
+</div>
+
+<div class="modal-body">
+	<table class="table">
+		<thead>
+		<tr>
+			<th>Contest Reason</th>
+			<th>Operator</th>
+			<th>Customer</th>
+			<th>Project</th>
+			<th>Start</th>
+			<th>End</th>
+			<th>Tool</th>
+			<th>Approve</th>
+		</tr>
+		</thead>
+		<tbody>
+		<tr style="border-top: 2px solid #ddd">
+			<td>Current Transaction Data</td>
+			<td id="ue_operator">{{ usage_event.operator }}</td>
+			<td id="ue_user">{{ usage_event.user }}</td>
+			<td id="ue_project">{{ usage_event.project }}</td>
+			<td id="ue_start">{{ usage_event.start }}</td>
+			<td id="ue_end">{{ usage_event.end }}</td>
+			<td id="ue_tool">{{ usage_event.tool }}</td>
+		</tr>
+		{% for c in contests %}
+		<tr class={% if not c.admin_approved %}"danger-highlight"{% else %}"success-highlight"{% endif %} {% if c.reason == 'original' %}style="color: #ccc"{% endif %}
+			id="ue_contest_row_{{ forloop.counter }}">
+			<td style="border-top: 1px dotted #ddd" {% if c.reason == 'original' %}id="usage_event_orig"{% endif %} colspan="2">{{ c.description }}</td>
+			<td style="border-top: 1px dotted #ddd" id="ue_contest_user_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'customer' %}{{ c.user }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd" id="ue_contest_project_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'project' %}{{ c.project }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd" id="ue_contest_start_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'datetime' %}{{ c.start }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd" id="ue_contest_end_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'datetime' %}{{ c.end }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd" id="ue_contest_tool_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'tool' %}{{ c.tool }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd">{% if user.is_superuser and not c.admin_approved %}<button class="btn btn-success"
+		   		onclick="approve_ue_change('{% url 'approve_ue_contest' c.id %}', this, '{{ usage_event }}', '{{ forloop.counter }}', '{{ c.reason }}')">Approve</button>{% endif %}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+</div>

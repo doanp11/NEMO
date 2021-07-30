@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Contest usage event{% endblock %}
+{% block title %}Review contests{% endblock %}
 {% block extrahead %}
 	<script type="text/javascript" src="{% static "datetimepicker/bootstrap-datetimepicker.js" %}"></script>
 	<link rel="stylesheet" type="text/css" href="{% static "datetimepicker/bootstrap-datetimepicker.css" %}"/>
@@ -14,94 +14,214 @@
 		<span class="success-highlight">green</span> have previously been approved by an admin. If changes has been made to the original
 		values of the transaction, a copy of the original transaction will be saved and highlighted in <span style="color: #ccc">gray</span>.</p>
 
+	{% if sc_contests.exists %}
+	<h3>Staff Charges</h3>
 	<table class="table">
 		<thead>
 		<tr>
-			<th>Usage Event</th>
+			<th>ID</th>
+			<th>Staff Member</th>
+			<th>Customer</th>
+			<th>Project</th>
+			<th>Start</th>
+			<th>End</th>
+		</tr>
+		</thead>
+		<tbody>
+		{% regroup sc_contests by transaction as staff_charges %}
+		{% for s in staff_charges %}
+		<tr {% if s.grouper.id in sc_contest_list %}class="warning-highlight"{% endif %} id="sc_{{ s.grouper.id }}"
+				style="border-top: 2px solid #ddd; cursor: pointer" onclick="fetch_contest_details('{% url 'review_sc_contests' s.grouper.id %}', 'staff_charge')">
+			<td id="sc_{{ s.grouper.id }}_id">{{ s.grouper.id }}</td>
+			<td id="sc_{{ s.grouper.id }}_staff_member">{{ s.grouper.staff_member }}</td>
+			<td id="sc_{{ s.grouper.id }}_customer">{{ s.grouper.customer }}</td>
+			<td id="sc_{{ s.grouper.id }}_project">{{ s.grouper.project }}</td>
+			<td id="sc_{{ s.grouper.id }}_start">{{ s.grouper.start }}</td>
+			<td id="sc_{{ s.grouper.id }}_end">{{ s.grouper.end }}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+	{% endif %}
+
+	{% if ue_contests.exists %}
+	<h3>Usage Events</h3>
+	<table class="table">
+		<thead>
+		<tr>
+			<th>ID</th>
 			<th>Operator</th>
 			<th>Customer</th>
 			<th>Project</th>
 			<th>Start</th>
 			<th>End</th>
 			<th>Tool</th>
-			<th>Approve</th>
 		</tr>
 		</thead>
 		<tbody>
-		{% regroup contests by transaction as usage_events %}
+		{% regroup ue_contests by transaction as usage_events %}
 		{% for u in usage_events %}
-			<tr style="border-top: 2px solid #ddd" id="usage_event_row_{{ forloop.counter }}">
-				<td id="ue_id_{{ forloop.counter }}">{{ u.grouper.id }}</td>
-				<td id="ue_operator_{{ forloop.counter }}">{{ u.grouper.operator }}</td>
-				<td id="ue_user_{{ forloop.counter }}">{{ u.grouper.user }}</td>
-				<td id="ue_project_{{ forloop.counter }}">{{ u.grouper.project }}</td>
-				<td id="ue_start_{{ forloop.counter }}">{{ u.grouper.start }}</td>
-				<td id="ue_end_{{ forloop.counter }}">{{ u.grouper.end }}</td>
-				<td id="ue_tool_{{ forloop.counter }}">{{ u.grouper.tool }}</td>
-				<td></td>
+			<tr {% if u.grouper.id in ue_contest_list %}class="warning-highlight"{% endif %} id="ue_{{ u.grouper.id }}"
+					style="border-top: 2px solid #ddd; cursor: pointer" onclick="fetch_contest_details('{% url 'review_ue_contests' u.grouper.id %}', 'usage_event')">
+				<td id="ue_{{ u.grouper.id }}_id">{{ u.grouper.id }}</td>
+				<td id="ue_{{ u.grouper.id }}_operator">{{ u.grouper.operator }}</td>
+				<td id="ue_{{ u.grouper.id }}_user">{{ u.grouper.user }}</td>
+				<td id="ue_{{ u.grouper.id }}_project">{{ u.grouper.project }}</td>
+				<td id="ue_{{ u.grouper.id }}_start">{{ u.grouper.start }}</td>
+				<td id="ue_{{ u.grouper.id }}_end">{{ u.grouper.end }}</td>
+				<td id="ue_{{ u.grouper.id }}_tool">{{ u.grouper.tool }}</td>
 			</tr>
-			{% for c in u.list %}
-			<tr class={% if not c.admin_approved %}"danger-highlight"{% else %}"success-highlight"{% endif %} {% if c.reason == 'original' %}style="color: #ccc"{% endif %}
-				id="contest_row_{{forloop.parentloop.counter}}_{{ forloop.counter }}">
-				<td {% if c.reason == 'original' %}id="usage_event_orig_{{ forloop.parentloop.counter }}"{% endif %} colspan="2">{{ c.description }}</td>
-				<td id="contest_user_{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'customer' %}{{ c.user }}{% endif %}</td>
-				<td id="contest_project_{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'project' %}{{ c.project }}{% endif %}</td>
-				<td id="contest_start_{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'datetime' %}{{ c.start }}{% endif %}</td>
-				<td id="contest_end_{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'datetime' %}{{ c.end }}{% endif %}</td>
-				<td id="contest_tool_{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'tool' %}{{ c.tool }}{% endif %}</td>
-				<td>{% if user.is_superuser and not c.admin_approved %}<button class="btn btn-success" onclick="approve_change('{% url 'approve_contest' c.id %}', this,
-				 '{{forloop.parentloop.counter}}', '{{ forloop.counter }}', '{{ c.reason }}')">Approve</button>{% endif %}</td>
-			</tr>
-			{% endfor %}
 		{% endfor %}
 		</tbody>
 	</table>
+	{% endif %}
+
+	<!-- Modal body for reviewing transactions -->
+	<div class="modal fade" id="review_transaction_contests" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content" style="overflow-x: scroll"></div>
+		</div>
+	</div>
+	<div class="modal fade" id="review_aar_contests" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content" style="overflow-x: scroll"></div>
+		</div>
+	</div>
 
 	<script>
-		function approve_change(url, button, ue_counter, c_counter, c_reason)
+		function display_contests(response, transaction_type)
+		{
+			let modal_jq = transaction_type == 'area_access_record' ? $( '#review_aar_contests' ) : $( '#review_transaction_contests' );
+			modal_jq.find( '.modal-content' ).html(response);
+			modal_jq.modal('show');
+		}
+
+		function fetch_contest_details(url, transaction_type)
+		{
+			let failure_dialog = ajax_failure_callback("Unable to display contests");
+			ajax_get(url, undefined, function(response) { return display_contests(response, transaction_type) }, failure_dialog);
+		}
+
+		$('#review_aar_contests').on('hidden.bs.modal', function () {
+			$("#review_aar_contests .modal-content").empty();
+		});
+
+		$('#review_transaction_contests').on('hidden.bs.modal', function () {
+			$("#review_transaction_contests .modal-content").empty();
+		});
+
+		function approve_sc_change(url, button, staff_charge, c_counter, c_reason)
+		{
+			$(button).hide();
+			$("#sc_contest_row_" + c_counter).attr('class', 'success-highlight');
+
+			// Update models
+			let failure_dialog = ajax_failure_callback("Unable to approve contest");
+			ajax_post(url, undefined, undefined, failure_dialog);
+
+			if( c_reason != "area" )
+			{
+				// Add row for original Staff Charge if not yet created
+				if( $("#staff_charge_orig").length == 0 )
+				{
+					// Build table row to add
+					let orig_sc_row = "<tr style='color: #ccc'>";
+					orig_sc_row += "<td id='staff_charge_orig' colspan='2'>Original Transaction</td>";
+					orig_sc_row += "<td>" + $( "#sc_customer" ).text() + "</td>";
+					orig_sc_row += "<td>" + $( "#sc_project"  ).text() + "</td>";
+					orig_sc_row += "<td>" + $( "#sc_start"	  ).text() + "</td>";
+					orig_sc_row += "<td>" + $( "#sc_end" 	  ).text() + "</td>";
+					orig_sc_row += "<td></td>";
+					orig_sc_row += "</tr>";
+
+					// Add row
+					$("tr[id^='sc_contest_row_']").last().after(orig_sc_row);
+				}
+
+				// Update staff charge rows
+				switch( c_reason )
+				{
+					case "customer":
+						$("#sc_customer").text($("#sc_contest_customer_" + c_counter).text());
+						$("#sc_" + staff_charge + "_customer").text($("#sc_contest_customer_" + c_counter).text());
+						break;
+					case "project":
+						$("#sc_project").text($("#sc_contest_project_" + c_counter).html());
+						$("#sc_" + staff_charge + "_project").text($("#sc_contest_project_" + c_counter).html());
+						break;
+					case "datetime":
+						$("#sc_start").text($("#sc_contest_start_" + c_counter).html());
+						$("#sc_end").text($("#sc_contest_end_" + c_counter).html());
+
+						$("#sc_" + staff_charge + "_start").text($("#sc_contest_start_" + c_counter).html());
+						$("#sc" + staff_charge + "_end").text($("#sc_contest_end_" + c_counter).html());
+						break;
+				}
+			}
+
+			// Check if there are any remaining contests to approve
+			if( $( "#review_transaction_contests .btn-success:visible" ).length == 0 )
+			{
+				$("#sc_" + staff_charge).prop('class', '');
+			}
+		}
+
+		function approve_ue_change(url, button, usage_event, c_counter, c_reason)
 		{
 			// Update contest row styles
 			$(button).hide();
-			$("#contest_row_" + ue_counter + "_" + c_counter).attr('class', 'success-highlight');
+			$("#ue_contest_row_" + c_counter).attr('class', 'success-highlight');
 
 			// Update models
 			let failure_dialog = ajax_failure_callback("Unable to approve contest");
 			ajax_post(url, undefined, undefined, failure_dialog);
 
 			// Add row for original Usage Event if not yet created
-			if( $("#usage_event_orig_" + ue_counter).length == 0 )
+			if( $("#usage_event_orig").length == 0 )
 			{
 				// Build table row to add
 				var orig_ue_row = "<tr style='color: #ccc'>";
-				orig_ue_row += "<td colspan='2'>Original Transaction</td>";
-				orig_ue_row += "<td>" + $( "#ue_user_" 	  + ue_counter ).text() + "</td>";
-				orig_ue_row += "<td>" + $( "#ue_project_" + ue_counter ).text() + "</td>";
-				orig_ue_row += "<td>" + $( "#ue_start_"   + ue_counter ).text() + "</td>";
-				orig_ue_row += "<td>" + $( "#ue_end_" 	  + ue_counter ).text() + "</td>";
-				orig_ue_row += "<td>" + $( "#ue_tool_" 	  + ue_counter ).text() + "</td>";
+				orig_ue_row += "<td id='usage_event_orig' colspan='2'>Original Transaction</td>";
+				orig_ue_row += "<td>" + $( "#ue_user" 	 ).text() + "</td>";
+				orig_ue_row += "<td>" + $( "#ue_project" ).text() + "</td>";
+				orig_ue_row += "<td>" + $( "#ue_start" 	 ).text() + "</td>";
+				orig_ue_row += "<td>" + $( "#ue_end" 	 ).text() + "</td>";
+				orig_ue_row += "<td>" + $( "#ue_tool" 	 ).text() + "</td>";
 				orig_ue_row += "<td></td>";
 				orig_ue_row += "</tr>";
 
 				// Add row
-				$("tr[id^='contest_row_" + ue_counter + "']").last().after(orig_ue_row);
+				$("tr[id^='ue_contest_row_']").last().after(orig_ue_row);
 			}
 
-			// Update usage event row
+			// Update usage event row displayed in modal and in main page
 			switch( c_reason )
 			{
 				case "customer":
-					$("#ue_user_" + ue_counter).text($("#contest_user_" + ue_counter + "_" + c_counter).text());
+					$("#ue_user").text($("#ue_contest_user_" + c_counter).text());
+					$("#ue_" + usage_event + "_user").text($("#ue_contest_user_" + c_counter).text());
 					break;
 				case "project":
-					$("#ue_project_" + ue_counter).text($("#contest_project_" + ue_counter + "_" + c_counter).html());
+					$("#ue_project").text($("#ue_contest_project_" + c_counter).html());
+					$("#ue_" + usage_event + "_project").text($("#ue_contest_project_" + c_counter).html());
 					break;
 				case "datetime":
-					$("#ue_start_" + ue_counter).text($("#contest_start_" + ue_counter + "_" + c_counter).html());
-					$("#ue_end_" + ue_counter).text($("#contest_end_" + ue_counter + "_" + c_counter).html());
+					$("#ue_start").text($("#ue_contest_start_" + c_counter).html());
+					$("#ue_" + usage_event + "_start").text($("#ue_contest_start_" + c_counter).html());
+
+					$("#ue_end").text($("#ue_contest_end_" + c_counter).html());
+					$("#ue_" + usage_event + "_end").text($("#ue_contest_end_" + c_counter).html());
 					break;
 				case "tool":
-					$("#ue_tool_" + ue_counter).text($("#contest_tool_" + ue_counter + "_" + c_counter).html());
+					$("#ue_tool").text($("#ue_contest_tool_" + c_counter).html());
+					$("#ue_" + usage_event + "_tool").text($("#ue_contest_tool_" + c_counter).html());
 					break;
+			}
+
+			// Check if there are any remaining contests to approve
+			if( $( "#review_transaction_contests .btn-success:visible" ).length == 0 )
+			{
+				$("#ue_" + usage_event).prop('class', '');
 			}
 		}
 	</script>

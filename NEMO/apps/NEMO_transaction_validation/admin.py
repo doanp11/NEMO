@@ -134,6 +134,7 @@ class ContestAreaAccessRecordAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "transaction",
+        "original",
         "area",
         "start",
         "end",
@@ -143,6 +144,7 @@ class ContestAreaAccessRecordAdmin(admin.ModelAdmin):
         ("area", TreeRelatedFieldListFilter),
     )
     date_hierarchy = "start"
+    readonly_fields = ('original',)
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
@@ -150,7 +152,7 @@ class ContestAreaAccessRecordAdmin(admin.ModelAdmin):
         aar = obj.transaction
         if obj.admin_approved:
             # Check and create a Contest model if original Area Access Record has not been saved as a Contest model
-            orig_aar_created = ContestAreaAccessRecord.objects.filter(transaction=aar.id, reason='original').exists()
+            orig_aar_created = ContestAreaAccessRecord.objects.filter(transaction=aar.id, original=True).exists()
             if not orig_aar_created:
                 orig_aar_created = ContestAreaAccessRecord()
                 orig_aar_created.transaction = aar

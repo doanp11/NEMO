@@ -1,0 +1,44 @@
+<div class="modal-header">
+	<button type="button" class="close" data-dismiss="modal">&times;</button>
+	<h4 class="modal-title">Review Staff Charge {{ staff_charge }}</h4>
+	<p>Click on the "<span class="success-highlight">Approve</span>" button to approve the contest and apply its changes.
+		For contests regarding Area Access Records, click on the contest row to review the Area Access Record contests.</p>
+</div>
+
+<div class="modal-body">
+	<table class="table">
+		<thead>
+		<tr>
+			<th>Contest Reason</th>
+			<th>Operator</th>
+			<th>Customer</th>
+			<th>Project</th>
+			<th>Start</th>
+			<th>End</th>
+			<th>Approve</th>
+		</tr>
+		</thead>
+		<tbody>
+		<tr style="border-top: 2px solid #ddd">
+			<td>Current Transaction Data</td>
+			<td id="sc_staff_member">{{ staff_charge.staff_member }}</td>
+			<td id="sc_customer">{{ staff_charge.customer }}</td>
+			<td id="sc_project">{{ staff_charge.project }}</td>
+			<td id="sc_start">{{ staff_charge.start }}</td>
+			<td id="sc_end">{{ staff_charge.end }}</td>
+		</tr>
+		{% for c in contests %}
+		<tr class={% if not c.admin_approved %}"danger-highlight"{% else %}"success-highlight"{% endif %} {% if c.reason == 'original' %}style="color: #ccc"{% endif %} id="sc_contest_row_{{ forloop.counter }}">
+			<td style="border-top: 1px dotted #ddd{% if c.reason == 'area' %}; cursor: pointer{% endif %}" {% if c.reason == 'original' %}id="staff_charge_orig"{% endif %} colspan="2"
+				 {% if c.reason == 'area' %}onclick="fetch_contest_details('{% url 'review_aar_contests' c.id %}', 'area_access_record')"{% endif %}>{{ c.description }}</td>
+			<td style="border-top: 1px dotted #ddd" id="sc_contest_customer_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'customer' %}{{ c.user }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd" id="sc_contest_project_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'project' %}{{ c.project }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd" id="sc_contest_start_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'datetime' %}{{ c.start }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd" id="sc_contest_end_{{ forloop.counter }}">{% if c.reason == 'original' or c.reason == 'datetime' %}{{ c.end }}{% endif %}</td>
+			<td style="border-top: 1px dotted #ddd">{% if user.is_superuser and not c.admin_approved %}<button class="btn btn-success"
+		   		onclick="approve_sc_change('{% url 'approve_sc_contest' c.id %}', this, '{{ staff_charge }}', '{{ forloop.counter }}', '{{ c.reason }}')">Approve</button>{% endif %}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+</div>
