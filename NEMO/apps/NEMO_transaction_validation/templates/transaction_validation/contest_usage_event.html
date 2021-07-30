@@ -119,16 +119,14 @@
 		let end_date_jq = $('#end');
 		start_date_jq.datetimepicker({
 			format: 'dddd, MMMM DD, YYYY @ h:mm A',
-			defaultDate: start_date_jq.val(),
-			maxDate: 'now'
-		}).on('dp.change', function(e) {
+			defaultDate: start_date_jq.val()
+		}).maxDate('now').on('dp.change', function(e) {
 			enableSubmission()
 		});
 		end_date_jq.datetimepicker({
 			format: 'dddd, MMMM DD, YYYY @ h:mm A',
-			defaultDate: end_date_jq.val(),
-			maxDate: 'now'
-		}).on('dp.change', function(e) {
+			defaultDate: end_date_jq.val()
+		}).maxDate('now').on('dp.change', function(e) {
 			enableSubmission()
 		});
 	</script>
