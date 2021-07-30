@@ -1,12 +1,15 @@
 <div class="modal-header">
 	<button type="button" class="close" data-dismiss="modal">&times;</button>
 	<h4 class="modal-title">Review Area Access Records</h4>
+	<br>
+	<p>Contest Description: <span class="danger-highlight">{{ contest_reason }}</span></p>
 </div>
 
 <div class="modal-body">
 	<table class="table">
 		<thead>
 		<tr>
+			<th></th>
 			<th>ID</th>
 			<th>Area</th>
 			<th>Start</th>
@@ -14,19 +17,24 @@
 		</tr>
 		</thead>
 		<tbody>
-		{% for c in aar_contests %}
+		{% regroup aar_contests by transaction as aar_list %}
+		{% for aar in aar_list %}
 		<tr style="border-top: 2px solid #ddd">
-			<td style="border-top: 1px dotted #ddd">{{ c.transaction.id }}</td>
-			<td style="border-top: 1px dotted #ddd">{{ c.transaction.area }}</td>
-			<td style="border-top: 1px dotted #ddd">{{ c.transaction.start }}</td>
-			<td style="border-top: 1px dotted #ddd">{{ c.transaction.end }}</td>
+			<td>Current Transaction Data</td>
+			<td>{{ aar.grouper.id }}</td>
+			<td>{{ aar.grouper.area }}</td>
+			<td>{{ aar.grouper.start }}</td>
+			<td>{{ aar.grouper.end }}</td>
 		</tr>
-		<tr style="border-top: 2px solid #ddd" class="danger-highlight">
-			<td style="border-top: 1px dotted #ddd"></td>
+		{% for c in aar.list %}
+		<tr {% if c.original is True %}style="color: #ccc"
+		{% elif c.admin_approved is True %}class="success-highlight"{% else %}class="danger-highlight"{% endif %}>
+			<td style="border-top: 1px dotted #ddd" colspan="2">{% if c.original is True %}Original Transaction{% endif %}</td>
 			<td style="border-top: 1px dotted #ddd">{{ c.area|default_if_none:"" }}</td>
 			<td style="border-top: 1px dotted #ddd">{{ c.start|default_if_none:"" }}</td>
 			<td style="border-top: 1px dotted #ddd">{{ c.end|default_if_none:"" }}</td>
 		</tr>
+		{% endfor %}
 		{% endfor %}
 		</tbody>
 	</table>

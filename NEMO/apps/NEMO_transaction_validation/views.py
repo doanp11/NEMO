@@ -292,6 +292,7 @@ def review_contests(request, transaction_id=0, transaction_type='usage_event'):
 	elif transaction_type == 'area_access_record':
 		sc_contest = get_object_or_404(ContestStaffCharge, id=transaction_id)
 		dictionary = {
+			"contest_reason": sc_contest.description,
 			"aar_contests": sc_contest.area_access_records.order_by('transaction__id')
 		}
 		return render(request, "transaction_validation/review_aar_contests.html", dictionary)
