@@ -119,16 +119,24 @@
 		let end_date_jq = $('#end');
 		start_date_jq.datetimepicker({
 			format: 'dddd, MMMM DD, YYYY @ h:mm A',
-			defaultDate: start_date_jq.val()
-		}).maxDate('now').on('dp.change', function(e) {
+			defaultDate: start_date_jq.val(),
+			maxDate: 'now'
+		}).on('dp.change', function(e) {
 			enableSubmission()
 		});
 		end_date_jq.datetimepicker({
 			format: 'dddd, MMMM DD, YYYY @ h:mm A',
-			defaultDate: end_date_jq.val()
-		}).maxDate('now').on('dp.change', function(e) {
+			defaultDate: end_date_jq.val(),
+			maxDate: 'now'
+		}).on('dp.change', function(e) {
 			enableSubmission()
 		});
+
+		// Toggle datetimepickers to fix the bug that disables unnecessary time selections
+		start_date_jq.data("DateTimePicker").toggle();
+		start_date_jq.data("DateTimePicker").toggle();
+		end_date_jq.data("DateTimePicker").toggle();
+		end_date_jq.data("DateTimePicker").toggle();
 	</script>
 
 {% endblock %}

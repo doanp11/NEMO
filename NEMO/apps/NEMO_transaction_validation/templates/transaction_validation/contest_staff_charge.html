@@ -168,18 +168,28 @@
 		start_date_jq.each( function() {
 			$( this ).datetimepicker({
 				format: 'dddd, MMMM DD, YYYY @ h:mm A',
-				defaultDate: $( this ).val()
-			}).maxDate('now').on('dp.change', function(e) {
+				defaultDate: $( this ).val(),
+				maxDate: 'now'
+			}).on('dp.change', function(e) {
 				enableSubmission()
 			});
+
+			// Toggle datetimepickers to fix the bug that disables unnecessary time selections
+			$( this ).data("DateTimePicker").toggle();
+			$( this ).data("DateTimePicker").toggle();
 		})
 		end_date_jq.each( function() {
 			$( this ).datetimepicker({
 				format: 'dddd, MMMM DD, YYYY @ h:mm A',
-				defaultDate: $( this ).val()
-			}).maxDate('now').on('dp.change', function(e) {
+				defaultDate: $( this ).val(),
+				maxDate: 'now'
+			}).on('dp.change', function(e) {
 				enableSubmission()
 			});
+
+			// Toggle datetimepickers to fix the bug that disables unnecessary time selections
+			$( this ).data("DateTimePicker").toggle();
+			$( this ).data("DateTimePicker").toggle();
 		})
 	</script>
 
