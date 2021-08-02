@@ -57,6 +57,7 @@
 				<input type="text" id="end" name="end" class="form-control text-left" value="{{ end|date:'l, F d, Y' }} @ {{ end|time:'h:i A' }}">
 			</div>
 		</div>
+		{% if transaction.areaaccessrecord_set.exists %}
 		<div style="border-top: 1px solid #ddd">
 			<h3>Area Access Records</h3>
 			<br>
@@ -97,6 +98,7 @@
 				</tbody>
 			</table>
 		</div>
+		{% endif %}
 		<div style="border-top: 1px solid #ddd"><br></div>
 		<div class="form-group">
 			<label for="contest_reason" class="col-md-2 control-label"><b>Contest Reason</b></label>
