@@ -58,7 +58,7 @@ class ContestStaffCharge(models.Model):
     project = models.ForeignKey(Project, help_text="Transaction will be billed to this project", on_delete=models.CASCADE)
     start = models.DateTimeField()
     end = models.DateTimeField(null=True, blank=True)
-    area_access_records = models.ManyToManyField(ContestAreaAccessRecord, null=True, blank=True, help_text="Area Access Record contests")
+    area_access_records = models.ManyToManyField(ContestAreaAccessRecord, blank=True, help_text="Area Access Record contests")
     reason = models.TextField(choices=CONTEST_REASONS, help_text="Provide the reason for submitting this transaction contest")
     description = models.TextField(blank=True, null=True, help_text="Provide a detailed reason for submitting this transaction contest")
     admin_approved = models.BooleanField(default=False, help_text="<b>Check this to approve the contest and to apply the changes when saving this form</b>")
