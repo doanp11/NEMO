@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('NEMO', '0032_version_3_11_0'),
-        ('NEMO_transaction_validation', '0001_initial'),
+        ('NEMO_transaction_validation', '0001_NEMO_transaction_validation_0_0_1'),
     ]
 
     operations = [
