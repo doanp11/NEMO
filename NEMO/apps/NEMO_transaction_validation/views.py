@@ -45,6 +45,16 @@ def transaction_validation(request):
 		operator__is_staff=True, start__gte=start_date, start__lte=end_date
 	).exclude(operator=F("user"))
 	staff_charges = StaffCharge.objects.filter(start__gte=start_date, start__lte=end_date)
+
+	# Check if any transactions exist with default initial month date range
+	if not "start_date" in request.GET and not "end_date" in request.GET:
+		if not usage_events.exists() or not staff_charges.exists():
+			start_date -= timedelta(days=5)
+			usage_events = UsageEvent.objects.filter(
+				operator__is_staff=True, start__gte=start_date, start__lte=end_date
+			).exclude(operator=F("user"))
+		staff_charges = StaffCharge.objects.filter(start__gte=start_date, start__lte=end_date)
+
 	if operator:
 		usage_events = usage_events.exclude(~Q(operator_id=operator.id))
 		staff_charges = staff_charges.exclude(~Q(staff_member_id=operator.id))
@@ -148,7 +158,7 @@ def transaction_validation(request):
 
 @staff_member_required(login_url=None)
 def contest_transaction(request, transaction_id, transaction_type='usage_event'):
-	if transaction_type is 'staff_charge':
+	if transaction_type == 'staff_charge':
 		transaction = get_object_or_404(StaffCharge, id=transaction_id)
 		template = "transaction_validation/contest_staff_charge.html"
 	else:
@@ -162,7 +172,7 @@ def contest_transaction(request, transaction_id, transaction_type='usage_event')
 		"user_list": User.objects.all(),
 		"project_list": Project.objects.filter(active=True),
 	}
-	if transaction_type is 'staff_charge':
+	if transaction_type == 'staff_charge':
 		dictionary['area_list'] = Area.objects.all()
 	else:
 		dictionary['tool_list'] = Tool.objects.filter(visible=True)
