@@ -48,18 +48,18 @@ class ContestUsageEventAdmin(admin.ModelAdmin):
                 orig_usage_event.admin_approved = True
                 orig_usage_event.save()
 
-        # Update Usage Event model
-        contest_reason = obj.reason
-        if contest_reason == "customer":
-            usage_event.user = obj.user
-        if contest_reason == "project":
-            usage_event.project = obj.project
-        if contest_reason == "datetime":
-            usage_event.start = obj.start
-            usage_event.end = obj.end
-        if contest_reason == "tool":
-            usage_event.tool = obj.tool
-        usage_event.save()
+            # Update Usage Event model
+            contest_reason = obj.reason
+            if contest_reason == "customer":
+                usage_event.user = obj.user
+            if contest_reason == "project":
+                usage_event.project = obj.project
+            if contest_reason == "datetime":
+                usage_event.start = obj.start
+                usage_event.end = obj.end
+            if contest_reason == "tool":
+                usage_event.tool = obj.tool
+            usage_event.save()
 
 @register(ContestStaffCharge)
 class ContestStaffChargeAdmin(admin.ModelAdmin):
